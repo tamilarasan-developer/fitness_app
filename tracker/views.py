@@ -243,7 +243,15 @@ def log_food_view(request):
             fat = float(request.POST.get('manual_fat', 0.0) or 0.0)
             fiber = float(request.POST.get('manual_fiber', 0.0) or 0.0)
             serving_size_g = float(request.POST.get('manual_serving_size_g', 100.0) or 100.0)
-            serving_unit = request.POST.get('manual_serving_unit', '1 serving').strip() or '1 serving'
+            serving_unit = request.POST.get('manual_serving_unit', '').strip()
+            unit_type = request.POST.get('manual_unit_type', 'g')
+            if not serving_unit:
+                if unit_type == 'piece':
+                    serving_unit = '1 piece'
+                elif unit_type == 'ml':
+                    serving_unit = f"{int(serving_size_g)}ml"
+                else:
+                    serving_unit = f"{int(serving_size_g)}g"
 
             # Always link to a Food item: look up existing user custom food or create one
             food = Food.objects.filter(user=request.user, name__iexact=food_name).first()
@@ -349,13 +357,22 @@ def add_custom_food_view(request):
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
         category = request.POST.get('category', 'Custom').strip() or 'Custom'
-        serving_unit = request.POST.get('serving_unit', '100g').strip() or '100g'
+        unit_type = request.POST.get('unit_type', 'g')
+        serving_unit = request.POST.get('serving_unit', '').strip()
         serving_size_g = float(request.POST.get('serving_size_g', 100.0) or 100.0)
         calories = float(request.POST.get('calories', 0.0) or 0.0)
         protein = float(request.POST.get('protein', 0.0) or 0.0)
         carbs = float(request.POST.get('carbs', 0.0) or 0.0)
         fat = float(request.POST.get('fat', 0.0) or 0.0)
         fiber = float(request.POST.get('fiber', 0.0) or 0.0)
+
+        if not serving_unit:
+            if unit_type == 'piece':
+                serving_unit = '1 piece'
+            elif unit_type == 'ml':
+                serving_unit = f"{int(serving_size_g)}ml"
+            else:
+                serving_unit = f"{int(serving_size_g)}g"
 
         if not name:
             messages.error(request, "Food name is required.")
@@ -373,7 +390,7 @@ def add_custom_food_view(request):
             fat=fat,
             fiber=fiber
         )
-        messages.success(request, f"Added custom food '{name}' to your library!")
+        messages.success(request, f"Added custom food '{name}' ({serving_unit}) to your library!")
         return redirect('foods_list')
 
     return redirect('foods_list')

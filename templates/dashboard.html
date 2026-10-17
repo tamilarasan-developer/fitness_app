@@ -423,7 +423,7 @@
                     <div>
                         <div class="font-bold text-slate-900 dark:text-white text-sm">{{ item.food.name }}</div>
                         <div class="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
-                            {{ item.quantity }}x &bull; {{ item.serving_amount_g }}g &bull;
+                            <span class="font-semibold text-slate-700 dark:text-slate-300">{{ item.get_portion_display }}</span> &bull;
                             <span class="text-emerald-600 dark:text-emerald-400 font-semibold">{{ item.protein }}g P</span> &bull;
                             <span class="text-blue-600 dark:text-blue-400 font-semibold">{{ item.carbs }}g C</span> &bull;
                             <span class="text-rose-600 dark:text-rose-400 font-semibold">{{ item.fat }}g F</span>
@@ -482,7 +482,7 @@
                     <div>
                         <div class="font-bold text-slate-900 dark:text-white text-sm">{{ item.food.name }}</div>
                         <div class="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
-                            {{ item.quantity }}x &bull; {{ item.serving_amount_g }}g &bull;
+                            <span class="font-semibold text-slate-700 dark:text-slate-300">{{ item.get_portion_display }}</span> &bull;
                             <span class="text-emerald-600 dark:text-emerald-400 font-semibold">{{ item.protein }}g P</span> &bull;
                             <span class="text-blue-600 dark:text-blue-400 font-semibold">{{ item.carbs }}g C</span> &bull;
                             <span class="text-rose-600 dark:text-rose-400 font-semibold">{{ item.fat }}g F</span>
@@ -541,7 +541,7 @@
                     <div>
                         <div class="font-bold text-slate-900 dark:text-white text-sm">{{ item.food.name }}</div>
                         <div class="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
-                            {{ item.quantity }}x &bull; {{ item.serving_amount_g }}g &bull;
+                            <span class="font-semibold text-slate-700 dark:text-slate-300">{{ item.get_portion_display }}</span> &bull;
                             <span class="text-emerald-600 dark:text-emerald-400 font-semibold">{{ item.protein }}g P</span> &bull;
                             <span class="text-blue-600 dark:text-blue-400 font-semibold">{{ item.carbs }}g C</span> &bull;
                             <span class="text-rose-600 dark:text-rose-400 font-semibold">{{ item.fat }}g F</span>
@@ -600,7 +600,7 @@
                     <div>
                         <div class="font-bold text-slate-900 dark:text-white text-sm">{{ item.food.name }}</div>
                         <div class="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
-                            {{ item.quantity }}x &bull; {{ item.serving_amount_g }}g &bull;
+                            <span class="font-semibold text-slate-700 dark:text-slate-300">{{ item.get_portion_display }}</span> &bull;
                             <span class="text-emerald-600 dark:text-emerald-400 font-semibold">{{ item.protein }}g P</span> &bull;
                             <span class="text-blue-600 dark:text-blue-400 font-semibold">{{ item.carbs }}g C</span> &bull;
                             <span class="text-rose-600 dark:text-rose-400 font-semibold">{{ item.fat }}g F</span>
@@ -772,17 +772,41 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-2 pt-1">
-                    <div>
-                        <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Serving Unit</label>
-                        <input type="text" id="manualServingUnit" name="manual_serving_unit" placeholder="1 plate / 1 bowl" value="1 serving"
-                            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-1.5 px-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 shadow-inner">
+                <!-- Smart Unit Measurement Selector (Pieces vs ml vs g) -->
+                <div class="pt-1">
+                    <input type="hidden" id="manualUnitType" name="manual_unit_type" value="g">
+                    <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center justify-between">
+                        <span>How do you measure this?</span>
+                        <span id="activeUnitIndicator" class="text-[10px] text-emerald-500 font-semibold">Grams (Solid)</span>
+                    </label>
+                    <div class="grid grid-cols-3 gap-1.5 mb-2">
+                        <button type="button" onclick="setManualUnitType('piece')" id="btnUnitPiece"
+                            class="unit-btn py-1.5 px-2 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-emerald-500 transition">
+                            🐟 Pieces / Count
+                        </button>
+                        <button type="button" onclick="setManualUnitType('ml')" id="btnUnitMl"
+                            class="unit-btn py-1.5 px-2 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-emerald-500 transition">
+                            🥛 Milliliters (ml)
+                        </button>
+                        <button type="button" onclick="setManualUnitType('g')" id="btnUnitG"
+                            class="unit-btn py-1.5 px-2 rounded-xl text-xs font-bold border border-emerald-500/50 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 transition">
+                            ⚖️ Grams (g)
+                        </button>
                     </div>
-                    <div>
-                        <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Est. Weight (grams)</label>
-                        <input type="number" step="5" min="1" id="manualServingSizeG" name="manual_serving_size_g" placeholder="100" value="100"
-                            oninput="updatePreview()"
-                            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-1.5 px-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 shadow-inner">
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label id="lblServingUnit" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Serving Label</label>
+                            <input type="text" id="manualServingUnit" name="manual_serving_unit" placeholder="100g, 1 piece..." value="100g"
+                                oninput="updatePreview()"
+                                class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-1.5 px-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 shadow-inner">
+                        </div>
+                        <div>
+                            <label id="lblServingAmount" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Base Size / Weight</label>
+                            <input type="number" step="1" min="1" id="manualServingSizeG" name="manual_serving_size_g" placeholder="100" value="100"
+                                oninput="updatePreview()"
+                                class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-1.5 px-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 shadow-inner">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -790,19 +814,21 @@
             <!-- Portion Multiplier Stepper -->
             <div>
                 <div class="flex justify-between items-center mb-1.5">
-                    <label for="quantityInput" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Portion / Servings Multiplier</label>
+                    <label id="portionLabel" for="quantityInput" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        Portion / Quantity
+                    </label>
                     <span id="servingWeightBadge" class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">100g</span>
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <button type="button" onclick="stepQty(-0.25)" class="tap-pop w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-black text-sm flex items-center justify-center transition">-</button>
-                    <input type="number" step="0.05" min="0.05" max="50" id="quantityInput" name="quantity" value="1.0"
+                    <button type="button" onclick="stepQty(-1)" class="tap-pop w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-black text-sm flex items-center justify-center transition">-</button>
+                    <input type="number" step="0.1" min="0.1" max="50" id="quantityInput" name="quantity" value="1.0"
                         class="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-center text-sm font-black text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 shadow-inner">
-                    <button type="button" onclick="stepQty(0.25)" class="tap-pop w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-black text-sm flex items-center justify-center transition">+</button>
+                    <button type="button" onclick="stepQty(1)" class="tap-pop w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-black text-sm flex items-center justify-center transition">+</button>
                 </div>
 
-                <!-- Quick Multiplier Chips -->
-                <div class="flex items-center gap-1.5 mt-2">
+                <!-- Dynamic Quick Multiplier Chips (Adapts between Pieces, ml, and grams) -->
+                <div id="quickChipsContainer" class="flex items-center gap-1.5 mt-2">
                     <button type="button" onclick="setQty(0.5)" class="tap-pop flex-1 py-1 rounded-lg bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs text-slate-600 dark:text-slate-300 transition">0.5x</button>
                     <button type="button" onclick="setQty(1.0)" class="tap-pop flex-1 py-1 rounded-lg bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs text-slate-600 dark:text-slate-300 transition">1.0x</button>
                     <button type="button" onclick="setQty(1.5)" class="tap-pop flex-1 py-1 rounded-lg bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs text-slate-600 dark:text-slate-300 transition">1.5x</button>
@@ -945,14 +971,112 @@
         if (modal) modal.classList.add('hidden');
     }
 
-    function stepQty(amount) {
-        const qtyInput = document.getElementById('quantityInput');
-        if (qtyInput) {
-            let current = parseFloat(qtyInput.value) || 1.0;
-            let updated = Math.max(0.1, Math.round((current + amount) * 100) / 100);
-            qtyInput.value = updated;
-            updatePreview();
+    function getCurrentUnitType() {
+        const mode = document.getElementById('entryModeInput')?.value || 'select';
+        if (mode === 'manual') {
+            return document.getElementById('manualUnitType')?.value || 'g';
+        } else {
+            const foodSelect = document.getElementById('foodSelect');
+            if (!foodSelect) return 'g';
+            const opt = foodSelect.options[foodSelect.selectedIndex];
+            if (!opt) return 'g';
+            const unit = (opt.getAttribute('data-unit') || '').toLowerCase();
+            if (unit.includes('ml')) return 'ml';
+            if (['piece', 'pc', 'slice', 'egg', 'item', 'roti', 'idli', 'dosa', 'banana', 'apple'].some(k => unit.includes(k))) return 'piece';
+            return 'g';
         }
+    }
+
+    function renderQuickChips(unitType) {
+        const container = document.getElementById('quickChipsContainer');
+        if (!container) return;
+        const currentQty = parseFloat(document.getElementById('quantityInput')?.value) || 1.0;
+
+        if (unitType === 'piece') {
+            container.innerHTML = `
+                <button type="button" onclick="setQty(1)" class="tap-pop flex-1 py-1 rounded-lg ${currentQty === 1 ? 'bg-emerald-500 text-white font-bold' : 'bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'} text-xs transition">1 pc</button>
+                <button type="button" onclick="setQty(2)" class="tap-pop flex-1 py-1 rounded-lg ${currentQty === 2 ? 'bg-emerald-500 text-white font-bold' : 'bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'} text-xs transition">2 pcs</button>
+                <button type="button" onclick="setQty(3)" class="tap-pop flex-1 py-1 rounded-lg ${currentQty === 3 ? 'bg-emerald-500 text-white font-bold' : 'bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'} text-xs transition">3 pcs</button>
+                <button type="button" onclick="setQty(5)" class="tap-pop flex-1 py-1 rounded-lg ${currentQty === 5 ? 'bg-emerald-500 text-white font-bold' : 'bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'} text-xs transition">5 pcs</button>
+            `;
+        } else if (unitType === 'ml') {
+            container.innerHTML = `
+                <button type="button" onclick="setQty(1.0)" class="tap-pop flex-1 py-1 rounded-lg ${currentQty === 1.0 ? 'bg-emerald-500 text-white font-bold' : 'bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'} text-xs transition">100ml (1x)</button>
+                <button type="button" onclick="setQty(2.0)" class="tap-pop flex-1 py-1 rounded-lg ${currentQty === 2.0 ? 'bg-emerald-500 text-white font-bold' : 'bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'} text-xs transition">200ml (2x)</button>
+                <button type="button" onclick="setQty(2.5)" class="tap-pop flex-1 py-1 rounded-lg ${currentQty === 2.5 ? 'bg-emerald-500 text-white font-bold' : 'bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'} text-xs transition">250ml (2.5x)</button>
+                <button type="button" onclick="setQty(5.0)" class="tap-pop flex-1 py-1 rounded-lg ${currentQty === 5.0 ? 'bg-emerald-500 text-white font-bold' : 'bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'} text-xs transition">500ml (5x)</button>
+            `;
+        } else {
+            container.innerHTML = `
+                <button type="button" onclick="setQty(0.5)" class="tap-pop flex-1 py-1 rounded-lg ${currentQty === 0.5 ? 'bg-emerald-500 text-white font-bold' : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300'} text-xs transition">0.5x</button>
+                <button type="button" onclick="setQty(1.0)" class="tap-pop flex-1 py-1 rounded-lg ${currentQty === 1.0 ? 'bg-emerald-500 text-white font-bold' : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300'} text-xs transition">1.0x</button>
+                <button type="button" onclick="setQty(1.5)" class="tap-pop flex-1 py-1 rounded-lg ${currentQty === 1.5 ? 'bg-emerald-500 text-white font-bold' : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300'} text-xs transition">1.5x</button>
+                <button type="button" onclick="setQty(2.0)" class="tap-pop flex-1 py-1 rounded-lg ${currentQty === 2.0 ? 'bg-emerald-500 text-white font-bold' : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300'} text-xs transition">2.0x</button>
+            `;
+        }
+    }
+
+    function setManualUnitType(type) {
+        const input = document.getElementById('manualUnitType');
+        if (input) input.value = type;
+
+        const btnP = document.getElementById('btnUnitPiece');
+        const btnM = document.getElementById('btnUnitMl');
+        const btnG = document.getElementById('btnUnitG');
+        const activeClass = "unit-btn py-1.5 px-2 rounded-xl text-xs font-bold border border-emerald-500/50 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 transition";
+        const inactiveClass = "unit-btn py-1.5 px-2 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-emerald-500 transition";
+
+        if (btnP) btnP.className = type === 'piece' ? activeClass : inactiveClass;
+        if (btnM) btnM.className = type === 'ml' ? activeClass : inactiveClass;
+        if (btnG) btnG.className = type === 'g' ? activeClass : inactiveClass;
+
+        const lblUnit = document.getElementById('lblServingUnit');
+        const lblAmt = document.getElementById('lblServingAmount');
+        const unitInput = document.getElementById('manualServingUnit');
+        const amtInput = document.getElementById('manualServingSizeG');
+        const indicator = document.getElementById('activeUnitIndicator');
+        const qtyInput = document.getElementById('quantityInput');
+
+        if (type === 'piece') {
+            if (indicator) indicator.textContent = "Pieces / Count";
+            if (lblUnit) lblUnit.textContent = "Serving Label";
+            if (unitInput) unitInput.value = "1 piece";
+            if (lblAmt) lblAmt.textContent = "Est. Grams/Piece";
+            if (amtInput) amtInput.value = "50";
+            if (qtyInput) qtyInput.value = "1";
+        } else if (type === 'ml') {
+            if (indicator) indicator.textContent = "Liquid / Volume (ml)";
+            if (lblUnit) lblUnit.textContent = "Volume Unit";
+            if (unitInput) unitInput.value = "100ml";
+            if (lblAmt) lblAmt.textContent = "Base Volume (ml)";
+            if (amtInput) amtInput.value = "100";
+            if (qtyInput) qtyInput.value = "1.0";
+        } else {
+            if (indicator) indicator.textContent = "Weight / Grams (g)";
+            if (lblUnit) lblUnit.textContent = "Weight Unit";
+            if (unitInput) unitInput.value = "100g";
+            if (lblAmt) lblAmt.textContent = "Base Weight (g)";
+            if (amtInput) amtInput.value = "100";
+            if (qtyInput) qtyInput.value = "1.0";
+        }
+        renderQuickChips(type);
+        updatePreview();
+    }
+
+    function stepQty(direction) {
+        const qtyInput = document.getElementById('quantityInput');
+        if (!qtyInput) return;
+        const currentType = getCurrentUnitType();
+        let step = 0.5;
+        if (currentType === 'piece') {
+            step = 1;
+        } else if (currentType === 'g') {
+            step = 0.25;
+        }
+        let current = parseFloat(qtyInput.value) || 1.0;
+        let updated = Math.max(currentType === 'piece' ? 1 : 0.1, Math.round((current + (direction * step)) * 100) / 100);
+        qtyInput.value = updated;
+        updatePreview();
     }
 
     function setQty(val) {
@@ -1064,10 +1188,35 @@
             servingUnit = opt.getAttribute('data-unit') || 'serving';
         }
 
-        const totalGrams = Math.round(servingG * qty);
-        document.getElementById('servingWeightBadge').textContent = `${totalGrams}g (${qty}x)`;
+        const unitType = getCurrentUnitType();
+        renderQuickChips(unitType);
+
+        let portionBadgeText = '';
+        let portionPreviewText = '';
+
+        if (unitType === 'piece') {
+            const pcs = qty === 1 ? '1 piece' : `${qty} pieces`;
+            portionBadgeText = pcs;
+            portionPreviewText = `${pcs} (est. ${Math.round(servingG * qty)}g)`;
+            const lbl = document.getElementById('portionLabel');
+            if (lbl) lbl.textContent = "Number of Pieces";
+        } else if (unitType === 'ml') {
+            const mlTotal = Math.round(servingG * qty);
+            portionBadgeText = `${mlTotal} ml`;
+            portionPreviewText = `${mlTotal} ml (${qty}x ${servingUnit})`;
+            const lbl = document.getElementById('portionLabel');
+            if (lbl) lbl.textContent = "Volume / Servings";
+        } else {
+            const gTotal = Math.round(servingG * qty);
+            portionBadgeText = `${gTotal}g (${qty}x)`;
+            portionPreviewText = `${qty}x Portion (${gTotal}g / ${servingUnit})`;
+            const lbl = document.getElementById('portionLabel');
+            if (lbl) lbl.textContent = "Portion / Multiplier";
+        }
+
+        document.getElementById('servingWeightBadge').textContent = portionBadgeText;
         document.getElementById('previewFoodName').textContent = name;
-        document.getElementById('previewPortionText').textContent = `${qty}x Portion (${totalGrams}g / ${servingUnit})`;
+        document.getElementById('previewPortionText').textContent = portionPreviewText;
         document.getElementById('previewCalText').textContent = `${Math.round(cal * qty)} kcal`;
         document.getElementById('previewProtText').textContent = `${(prot * qty).toFixed(1)}g`;
         document.getElementById('previewCarbsText').textContent = `${(carbs * qty).toFixed(1)}g`;

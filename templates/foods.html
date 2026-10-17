@@ -120,22 +120,45 @@
                     class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500">
             </div>
 
+            <!-- Unit Measurement Selector (Pieces / ml / g) -->
+            <div>
+                <input type="hidden" id="customUnitType" name="unit_type" value="g">
+                <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                    <span>Measurement Unit</span>
+                    <span id="customUnitBadge" class="text-[10px] text-emerald-500 font-bold">Grams (g)</span>
+                </label>
+                <div class="grid grid-cols-3 gap-1.5 mb-2.5">
+                    <button type="button" onclick="selectCustomUnit('piece')" id="btnCustomPiece"
+                        class="custom-unit-btn py-1.5 px-2 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-emerald-500 transition">
+                        🐟 Pieces / Count
+                    </button>
+                    <button type="button" onclick="selectCustomUnit('ml')" id="btnCustomMl"
+                        class="custom-unit-btn py-1.5 px-2 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-emerald-500 transition">
+                        🥛 Milliliters (ml)
+                    </button>
+                    <button type="button" onclick="selectCustomUnit('g')" id="btnCustomG"
+                        class="custom-unit-btn py-1.5 px-2 rounded-xl text-xs font-bold border border-emerald-500/50 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 transition">
+                        ⚖️ Grams (g)
+                    </button>
+                </div>
+            </div>
+
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label for="custom_category" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Category</label>
-                    <input type="text" id="custom_category" name="category" value="Custom" placeholder="Meals, Snacks..."
+                    <input type="text" id="custom_category" name="category" value="Custom" placeholder="Meals, Snacks, Dairy..."
                         class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500">
                 </div>
                 <div>
-                    <label for="custom_unit" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Serving Unit</label>
-                    <input type="text" id="custom_unit" name="serving_unit" value="1 bowl" placeholder="100g, 1 piece..."
+                    <label id="lblCustomUnit" for="custom_unit" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Serving Unit</label>
+                    <input type="text" id="custom_unit" name="serving_unit" value="100g" placeholder="100g, 1 piece..."
                         class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500">
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label for="custom_g" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Serving Weight (g)</label>
+                    <label id="lblCustomG" for="custom_g" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Serving Size / Weight</label>
                     <input type="number" step="1" id="custom_g" name="serving_size_g" value="100"
                         class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500">
                 </div>
@@ -171,4 +194,43 @@
         </form>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function selectCustomUnit(type) {
+        document.getElementById('customUnitType').value = type;
+        const btnP = document.getElementById('btnCustomPiece');
+        const btnM = document.getElementById('btnCustomMl');
+        const btnG = document.getElementById('btnCustomG');
+        const activeClass = "custom-unit-btn py-1.5 px-2 rounded-xl text-xs font-bold border border-emerald-500/50 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 transition";
+        const inactiveClass = "custom-unit-btn py-1.5 px-2 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-emerald-500 transition";
+
+        if (btnP) btnP.className = type === 'piece' ? activeClass : inactiveClass;
+        if (btnM) btnM.className = type === 'ml' ? activeClass : inactiveClass;
+        if (btnG) btnG.className = type === 'g' ? activeClass : inactiveClass;
+
+        const badge = document.getElementById('customUnitBadge');
+        const unitInput = document.getElementById('custom_unit');
+        const gInput = document.getElementById('custom_g');
+        const lblG = document.getElementById('lblCustomG');
+
+        if (type === 'piece') {
+            if (badge) badge.textContent = "Pieces / Count";
+            if (unitInput) unitInput.value = "1 piece";
+            if (lblG) lblG.textContent = "Est. Weight/Piece (g)";
+            if (gInput) gInput.value = "50";
+        } else if (type === 'ml') {
+            if (badge) badge.textContent = "Liquid / Volume (ml)";
+            if (unitInput) unitInput.value = "100ml";
+            if (lblG) lblG.textContent = "Serving Volume (ml)";
+            if (gInput) gInput.value = "100";
+        } else {
+            if (badge) badge.textContent = "Grams (g)";
+            if (unitInput) unitInput.value = "100g";
+            if (lblG) lblG.textContent = "Serving Weight (g)";
+            if (gInput) gInput.value = "100";
+        }
+    }
+</script>
 {% endblock %}

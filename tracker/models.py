@@ -167,6 +167,34 @@ class FoodLog(models.Model):
     class Meta:
         ordering = ['created_at']
 
+    def get_portion_display(self):
+        unit = (self.food.serving_unit or '').lower()
+        if 'ml' in unit:
+            return f"{round(self.serving_amount_g)} ml"
+        elif any(k in unit for k in ['piece', 'pc', 'slice', 'egg', 'item', 'biscuit', 'roti', 'idli', 'dosa']):
+            qty = int(self.quantity) if self.quantity.is_integer() else self.quantity
+            unit_name = 'piece' if qty == 1 else 'pieces'
+            if 'slice' in unit:
+                unit_name = 'slice' if qty == 1 else 'slices'
+            elif 'egg' in unit:
+                unit_name = 'egg' if qty == 1 else 'eggs'
+            elif 'roti' in unit:
+                unit_name = 'roti' if qty == 1 else 'rotis'
+            elif 'idli' in unit:
+                unit_name = 'idli' if qty == 1 else 'idlis'
+            return f"{qty} {unit_name}"
+        elif 'cup' in unit:
+            qty = int(self.quantity) if self.quantity.is_integer() else self.quantity
+            return f"{qty} cup{'s' if qty != 1 else ''}"
+        elif 'glass' in unit:
+            qty = int(self.quantity) if self.quantity.is_integer() else self.quantity
+            return f"{qty} glass{'es' if qty != 1 else ''}"
+        elif 'scoop' in unit:
+            qty = int(self.quantity) if self.quantity.is_integer() else self.quantity
+            return f"{qty} scoop{'s' if qty != 1 else ''}"
+        else:
+            return f"{round(self.serving_amount_g)}g"
+
     def __str__(self):
         return f"{self.user.username} - {self.meal_type}: {self.food.name} ({self.calories} kcal)"
 

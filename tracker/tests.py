@@ -155,5 +155,71 @@ class FitnessNutritionTestCase(TestCase):
         self.assertEqual(log.protein, 12.0)
         self.assertEqual(log.carbs, 76.0)
 
+    def test_piece_and_ml_measurements(self):
+        self.client.login(username='testfitness', password='testpassword123')
+        today_str = datetime.date.today().isoformat()
+
+        # 1. Test logging 3 pieces of Fish
+        res_fish = self.client.post(reverse('log_food'), {
+            'entry_mode': 'manual',
+            'manual_food_name': 'Fried Fish Pieces',
+            'manual_unit_type': 'piece',
+            'manual_serving_unit': '1 piece',
+            'manual_serving_size_g': 50.0,
+            'manual_calories': 70.0,
+            'manual_protein': 12.0,
+            'manual_carbs': 1.0,
+            'manual_fat': 2.0,
+            'quantity': 3.0,
+            'meal_type': 'snack',
+            'log_date': today_str
+        }, follow=True)
+        self.assertEqual(res_fish.status_code, 200)
+
+        fish_log = FoodLog.objects.filter(user=self.user, food__name='Fried Fish Pieces').first()
+        self.assertIsNotNone(fish_log)
+        self.assertEqual(fish_log.quantity, 3.0)
+        self.assertEqual(fish_log.calories, 210.0)
+        self.assertEqual(fish_log.get_portion_display(), '3 pieces')
+
+        # 2. Test logging 250ml Milk (2.5x 100ml)
+        res_milk = self.client.post(reverse('log_food'), {
+            'entry_mode': 'manual',
+            'manual_food_name': 'Full Cream Milk',
+            'manual_unit_type': 'ml',
+            'manual_serving_unit': '100ml',
+            'manual_serving_size_g': 100.0,
+            'manual_calories': 62.0,
+            'manual_protein': 3.2,
+            'manual_carbs': 4.8,
+            'manual_fat': 3.5,
+            'quantity': 2.5,
+            'meal_type': 'breakfast',
+            'log_date': today_str
+        }, follow=True)
+        self.assertEqual(res_milk.status_code, 200)
+
+        milk_log = FoodLog.objects.filter(user=self.user, food__name='Full Cream Milk').first()
+        self.assertIsNotNone(milk_log)
+        self.assertEqual(milk_log.calories, 155.0)
+        self.assertEqual(milk_log.get_portion_display(), '250 ml')
+
+        # 3. Test add_custom_food view with ml
+        res_custom = self.client.post(reverse('add_custom_food'), {
+            'name': 'Almond Milk',
+            'category': 'Dairy',
+            'unit_type': 'ml',
+            'serving_size_g': 200,
+            'calories': 35,
+            'protein': 1.0,
+            'carbs': 1.5,
+            'fat': 2.5
+        }, follow=True)
+        self.assertEqual(res_custom.status_code, 200)
+        almond = Food.objects.filter(user=self.user, name='Almond Milk').first()
+        self.assertIsNotNone(almond)
+        self.assertEqual(almond.serving_unit, '200ml')
+
+
 
 
