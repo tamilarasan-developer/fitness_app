@@ -220,6 +220,52 @@ class FitnessNutritionTestCase(TestCase):
         self.assertIsNotNone(almond)
         self.assertEqual(almond.serving_unit, '200ml')
 
+    def test_edit_and_delete_custom_food(self):
+        self.client.login(username='testfitness', password='testpassword123')
+
+        # 1. Create a custom food that had accidental 0 values
+        food = Food.objects.create(
+            user=self.user,
+            name='Accidental Fish',
+            category='Custom',
+            serving_size_g=100,
+            serving_unit='1 bowl',
+            calories=0,
+            protein=0,
+            carbs=0,
+            fat=0,
+            fiber=0
+        )
+
+        # 2. Test editing the custom food
+        edit_url = reverse('edit_custom_food', args=[food.id])
+        res_edit = self.client.post(edit_url, {
+            'name': 'Crispy Fish Pieces',
+            'category': 'Seafood',
+            'unit_type': 'piece',
+            'serving_unit': '1 piece',
+            'serving_size_g': 60,
+            'calories': 95,
+            'protein': 14.5,
+            'carbs': 1.0,
+            'fat': 3.5,
+            'fiber': 0.0
+        }, follow=True)
+        self.assertEqual(res_edit.status_code, 200)
+
+        food.refresh_from_db()
+        self.assertEqual(food.name, 'Crispy Fish Pieces')
+        self.assertEqual(food.calories, 95.0)
+        self.assertEqual(food.protein, 14.5)
+        self.assertEqual(food.serving_unit, '1 piece')
+
+        # 3. Test deleting the custom food
+        delete_url = reverse('delete_custom_food', args=[food.id])
+        res_delete = self.client.post(delete_url, follow=True)
+        self.assertEqual(res_delete.status_code, 200)
+        self.assertFalse(Food.objects.filter(id=food.id).exists())
+
+
 
 
 

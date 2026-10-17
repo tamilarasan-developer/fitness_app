@@ -396,6 +396,59 @@ def add_custom_food_view(request):
     return redirect('foods_list')
 
 @login_required
+def edit_custom_food_view(request, food_id):
+    food = get_object_or_404(Food, id=food_id, user=request.user)
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        category = request.POST.get('category', 'Custom').strip() or 'Custom'
+        unit_type = request.POST.get('unit_type', 'g')
+        serving_unit = request.POST.get('serving_unit', '').strip()
+        serving_size_g = float(request.POST.get('serving_size_g', 100.0) or 100.0)
+        calories = float(request.POST.get('calories', 0.0) or 0.0)
+        protein = float(request.POST.get('protein', 0.0) or 0.0)
+        carbs = float(request.POST.get('carbs', 0.0) or 0.0)
+        fat = float(request.POST.get('fat', 0.0) or 0.0)
+        fiber = float(request.POST.get('fiber', 0.0) or 0.0)
+
+        if not serving_unit:
+            if unit_type == 'piece':
+                serving_unit = '1 piece'
+            elif unit_type == 'ml':
+                serving_unit = f"{int(serving_size_g)}ml"
+            else:
+                serving_unit = f"{int(serving_size_g)}g"
+
+        if not name:
+            messages.error(request, "Food name is required.")
+            return redirect('foods_list')
+
+        food.name = name
+        food.category = category
+        food.serving_unit = serving_unit
+        food.serving_size_g = serving_size_g
+        food.calories = calories
+        food.protein = protein
+        food.carbs = carbs
+        food.fat = fat
+        food.fiber = fiber
+        food.save()
+
+        messages.success(request, f"Updated custom food '{name}' successfully!")
+        return redirect('foods_list')
+
+    return redirect('foods_list')
+
+@login_required
+def delete_custom_food_view(request, food_id):
+    food = get_object_or_404(Food, id=food_id, user=request.user)
+    if request.method == 'POST':
+        name = food.name
+        food.delete()
+        messages.success(request, f"Deleted custom food '{name}'.")
+        return redirect('foods_list')
+    return redirect('foods_list')
+
+@login_required
 def history_view(request):
     profile = get_or_create_profile(request.user)
     targets = profile.get_daily_targets()
