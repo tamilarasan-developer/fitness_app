@@ -415,3 +415,30 @@ def api_food_detail(request, food_id):
         'fat': food.fat,
         'fiber': food.fiber,
     })
+
+@login_required
+def export_monthly_excel_view(request):
+    from django.http import HttpResponse
+    from .excel_export import generate_monthly_performance_excel
+    import datetime
+
+    today = timezone.now().date()
+    try:
+        year = int(request.GET.get('year', today.year))
+        month = int(request.GET.get('month', today.month))
+        if month < 1 or month > 12:
+            month = today.month
+    except (ValueError, TypeError):
+        year = today.year
+        month = today.month
+
+    profile = get_or_create_profile(request.user)
+    excel_buffer = generate_monthly_performance_excel(request.user, profile, year, month)
+
+    filename = f"NutriFit_Performance_{year}_{month:02d}.xlsx"
+    response = HttpResponse(
+        excel_buffer.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response

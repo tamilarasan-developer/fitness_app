@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Nutrition History & Trends - NutriFit{% endblock %}
+{% block title %}Nutrition History & Monthly Excel Export - NutriFit{% endblock %}
 
 {% block extra_head %}
 <!-- Chart.js for lightweight mobile charts -->
@@ -10,16 +10,22 @@
 {% block content %}
 <div class="space-y-6">
 
-    <div class="flex items-center justify-between">
+    <!-- Header & Monthly Excel Export Action -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <h1 class="text-xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-                <i class="fa-solid fa-chart-line text-emerald-500"></i> Intake History & Trends
+            <h1 class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                <i class="fa-solid fa-chart-line text-emerald-500"></i> Intake History & Performance
             </h1>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Review your caloric consistency and macronutrient compliance over time</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Review daily compliance, macro trends, and export comprehensive Excel performance reports</p>
         </div>
-        <div class="text-right">
-            <span class="text-xs text-slate-500 dark:text-slate-400 block">Daily Target</span>
-            <span class="text-sm font-bold text-amber-500 dark:text-amber-400">{{ targets.calories }} kcal &bull; {{ targets.protein }}g P</span>
+
+        <div class="flex items-center gap-2.5">
+            <!-- Export Monthly Excel Button -->
+            <button type="button" onclick="openExportModal()"
+                class="tap-pop py-2.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white font-extrabold text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/25 transition">
+                <i class="fa-solid fa-file-excel text-sm text-emerald-200"></i>
+                <span>Export Monthly Excel</span>
+            </button>
         </div>
     </div>
 
@@ -35,9 +41,14 @@
 
     <!-- History Table Card -->
     <div class="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xl transition-colors">
-        <h2 class="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-            <i class="fa-solid fa-table-list text-emerald-500"></i> Logged Daily Summaries
-        </h2>
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <i class="fa-solid fa-table-list text-emerald-500"></i> Logged Daily Summaries
+            </h2>
+            <button onclick="openExportModal()" class="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1">
+                <i class="fa-solid fa-download text-[11px]"></i> Download Excel
+            </button>
+        </div>
 
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs text-slate-700 dark:text-slate-300">
@@ -89,11 +100,105 @@
         </div>
     </div>
 </div>
+
+<!-- Export Monthly Excel Modal -->
+<div id="exportExcelModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl transition-all">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
+            <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-500">
+                    <i class="fa-solid fa-file-excel text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-black text-slate-900 dark:text-white">Export Monthly Excel</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Download formatted spreadsheet with KPIs & daily logs</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeExportModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">
+                &times;
+            </button>
+        </div>
+
+        <form method="GET" action="{% url 'export_monthly_excel' %}" class="space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label for="export_month" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">Month</label>
+                    <select id="export_month" name="month" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500">
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10" selected>October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="export_year" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">Year</label>
+                    <select id="export_year" name="year" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500">
+                        <option value="2026" selected>2026</option>
+                        <option value="2025">2025</option>
+                        <option value="2024">2024</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Features Included in the Excel File -->
+            <div class="bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-3.5 space-y-2 text-xs">
+                <span class="font-bold text-slate-800 dark:text-slate-200 block text-[11px] uppercase tracking-wider">Excel Workbook Contains:</span>
+                <div class="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                    <i class="fa-solid fa-check text-emerald-500 text-[10px]"></i>
+                    <span><strong>Sheet 1:</strong> Executive KPIs & Daily Compliance Matrix</span>
+                </div>
+                <div class="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                    <i class="fa-solid fa-check text-emerald-500 text-[10px]"></i>
+                    <span><strong>Sheet 2:</strong> Itemized Meal-by-Meal Food Intake Logs</span>
+                </div>
+                <div class="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                    <i class="fa-solid fa-check text-emerald-500 text-[10px]"></i>
+                    <span>Formatted Colors, Variances, and Hydration Analytics</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 pt-2">
+                <button type="button" onclick="closeExportModal()" class="tap-pop w-1/3 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+                    Cancel
+                </button>
+                <button type="submit" onclick="closeExportModal()"
+                    class="tap-pop w-2/3 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 shadow-lg shadow-emerald-500/25 transition flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-download"></i>
+                    <span>Download Report (.xlsx)</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
+    function openExportModal() {
+        const modal = document.getElementById('exportExcelModal');
+        if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeExportModal() {
+        const modal = document.getElementById('exportExcelModal');
+        if (modal) modal.classList.add('hidden');
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
+        const now = new Date();
+        const monthSelect = document.getElementById('export_month');
+        const yearSelect = document.getElementById('export_year');
+        if (monthSelect) monthSelect.value = now.getMonth() + 1;
+        if (yearSelect) yearSelect.value = now.getFullYear();
+
         const ctx = document.getElementById('caloriesChart');
         if (!ctx) return;
 

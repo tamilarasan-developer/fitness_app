@@ -98,3 +98,28 @@ class FitnessNutritionTestCase(TestCase):
         water_log = WaterLog.objects.filter(user=self.user).first()
         self.assertIsNotNone(water_log)
         self.assertEqual(water_log.amount_ml, 500.0)
+
+    def test_excel_monthly_export(self):
+        self.client.login(username='testfitness', password='testpassword123')
+        today = datetime.date.today()
+        # Log a meal
+        FoodLog.objects.create(
+            user=self.user,
+            food=self.food,
+            meal_type='breakfast',
+            quantity=1.5,
+            serving_amount_g=150.0,
+            calories=247.5,
+            protein=46.5,
+            carbs=0.0,
+            fat=5.4,
+            fiber=0.0,
+            log_date=today
+        )
+        response = self.client.get(reverse('export_monthly_excel'), {'year': today.year, 'month': today.month})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        self.assertIn('attachment; filename=', response['Content-Disposition'])
+        self.assertGreater(len(response.content), 1000)
+
+

@@ -14,5 +14,6 @@ urlpatterns = [
     path('foods/', views.foods_list_view, name='foods_list'),
     path('foods/add/', views.add_custom_food_view, name='add_custom_food'),
     path('history/', views.history_view, name='history'),
+    path('export/excel/', views.export_monthly_excel_view, name='export_monthly_excel'),
     path('api/food/<int:food_id>/', views.api_food_detail, name='api_food_detail'),
 ]
