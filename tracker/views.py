@@ -221,7 +221,7 @@ def dashboard_view(request):
 @login_required
 def log_food_view(request):
     if request.method == 'POST':
-        food_id = request.POST.get('food_id')
+        entry_mode = request.POST.get('entry_mode', 'select')
         meal_type = request.POST.get('meal_type', 'breakfast')
         quantity = float(request.POST.get('quantity', 1.0) or 1.0)
         date_str = request.POST.get('log_date', timezone.now().date().isoformat())
@@ -231,7 +231,41 @@ def log_food_view(request):
         except ValueError:
             log_date = timezone.now().date()
 
-        food = get_object_or_404(Food, Q(user__isnull=True) | Q(user=request.user), id=food_id)
+        if entry_mode == 'manual':
+            food_name = request.POST.get('manual_food_name', '').strip()
+            if not food_name:
+                messages.error(request, "Please enter a food name for manual logging.")
+                return redirect(f"{reverse('dashboard')}?date={date_str}")
+
+            calories = float(request.POST.get('manual_calories', 0.0) or 0.0)
+            protein = float(request.POST.get('manual_protein', 0.0) or 0.0)
+            carbs = float(request.POST.get('manual_carbs', 0.0) or 0.0)
+            fat = float(request.POST.get('manual_fat', 0.0) or 0.0)
+            fiber = float(request.POST.get('manual_fiber', 0.0) or 0.0)
+            serving_size_g = float(request.POST.get('manual_serving_size_g', 100.0) or 100.0)
+            serving_unit = request.POST.get('manual_serving_unit', '1 serving').strip() or '1 serving'
+
+            # Always link to a Food item: look up existing user custom food or create one
+            food = Food.objects.filter(user=request.user, name__iexact=food_name).first()
+            if not food:
+                food = Food.objects.create(
+                    user=request.user,
+                    name=food_name,
+                    category='Custom / Manual',
+                    serving_size_g=serving_size_g,
+                    serving_unit=serving_unit,
+                    calories=calories,
+                    protein=protein,
+                    carbs=carbs,
+                    fat=fat,
+                    fiber=fiber
+                )
+        else:
+            food_id = request.POST.get('food_id')
+            if not food_id:
+                messages.error(request, "Please select a food from the library.")
+                return redirect(f"{reverse('dashboard')}?date={date_str}")
+            food = get_object_or_404(Food, Q(user__isnull=True) | Q(user=request.user), id=food_id)
 
         serving_amount_g = round(food.serving_size_g * quantity, 1)
         calories = round(food.calories * quantity, 1)
@@ -253,7 +287,7 @@ def log_food_view(request):
             fat=fat,
             fiber=fiber
         )
-        messages.success(request, f"Added {quantity}x {food.name} ({calories} kcal) to {meal_type.title()}!")
+        messages.success(request, f"Logged {quantity}x {food.name} ({calories} kcal) to {meal_type.title()}!")
         return redirect(f"{reverse('dashboard')}?date={date_str}")
 
     return redirect('dashboard')

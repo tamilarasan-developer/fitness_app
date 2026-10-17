@@ -122,4 +122,38 @@ class FitnessNutritionTestCase(TestCase):
         self.assertIn('attachment; filename=', response['Content-Disposition'])
         self.assertGreater(len(response.content), 1000)
 
+    def test_manual_food_logging(self):
+        self.client.login(username='testfitness', password='testpassword123')
+        today_str = datetime.date.today().isoformat()
+
+        response = self.client.post(reverse('log_food'), {
+            'entry_mode': 'manual',
+            'manual_food_name': 'Homemade Masala Dosa',
+            'manual_calories': 240,
+            'manual_protein': 6.0,
+            'manual_carbs': 38.0,
+            'manual_fat': 7.0,
+            'manual_fiber': 3.0,
+            'manual_serving_size_g': 150.0,
+            'manual_serving_unit': '1 plate',
+            'quantity': 2.0,
+            'meal_type': 'dinner',
+            'log_date': today_str
+        }, follow=True)
+
+        self.assertEqual(response.status_code, 200)
+        # Check custom food was created
+        custom_food = Food.objects.filter(user=self.user, name='Homemade Masala Dosa').first()
+        self.assertIsNotNone(custom_food)
+        self.assertEqual(custom_food.calories, 240.0)
+
+        # Check FoodLog entry was created with 2x multiplier
+        log = FoodLog.objects.filter(user=self.user, meal_type='dinner', food=custom_food).first()
+        self.assertIsNotNone(log)
+        self.assertEqual(log.quantity, 2.0)
+        self.assertEqual(log.calories, 480.0)
+        self.assertEqual(log.protein, 12.0)
+        self.assertEqual(log.carbs, 76.0)
+
+
 
