@@ -1,0 +1,1007 @@
+{% extends "base.html" %}
+
+{% block title %}NutriFit Pro - Daily Nutrition Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Animated water liquid wave */
+    @keyframes waveMove {
+        0% { transform: translateX(0) translateZ(0) scaleY(1); }
+        50% { transform: translateX(-25%) translateZ(0) scaleY(1.1); }
+        100% { transform: translateX(-50%) translateZ(0) scaleY(1); }
+    }
+    .wave-animation {
+        animation: waveMove 8s linear infinite;
+    }
+    /* Confetti burst button effect */
+    .tap-pop:active {
+        transform: scale(0.92);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-5">
+
+    <!-- Top Pro Bar: Greeting, Score & Date Controls (Animated Slide Down) -->
+    <div class="animate-slide-down bg-white/90 dark:bg-gradient-to-r dark:from-slate-900/90 dark:via-slate-900/80 dark:to-slate-900/90 border border-slate-200 dark:border-slate-800/90 rounded-3xl p-4 sm:p-5 shadow-xl backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors">
+        <div>
+            <div class="flex items-center gap-2 mb-1">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Welcome Back,</span>
+                <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                    {{ user.username }}
+                </span>
+            </div>
+            <h1 class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                Daily Nutrition Command Center
+            </h1>
+        </div>
+
+        <!-- Right Side: Date Selector & Pro Nutrition Score -->
+        <div class="flex flex-wrap items-center gap-2.5">
+            <!-- Nutrition Score Badge with Pulsing Glow -->
+            <div class="animate-glow flex items-center gap-2.5 border px-3.5 py-2 rounded-2xl {{ analysis.nutrition_score.badge_class }} backdrop-blur-md shadow-md">
+                <i class="fa-solid fa-bolt text-xs animate-bounce"></i>
+                <div class="text-left">
+                    <div class="text-[10px] uppercase tracking-wider font-extrabold text-slate-500 dark:text-slate-400 leading-none">Compliance</div>
+                    <div class="text-xs font-black tracking-tight leading-none mt-1">
+                        <span class="counter-num" data-target="{{ analysis.nutrition_score.value }}">0</span>% &bull; {{ analysis.nutrition_score.grade }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Date Navigator -->
+            <div class="flex items-center bg-slate-100 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-1 shadow-inner">
+                <a href="?date={{ prev_date }}" class="tap-pop w-8 h-8 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition" title="Previous Day">
+                    <i class="fa-solid fa-chevron-left text-xs"></i>
+                </a>
+
+                <form method="GET" action="{% url 'dashboard' %}" class="flex items-center px-1">
+                    <input type="date" name="date" value="{{ current_date }}" onchange="this.form.submit()"
+                        class="bg-transparent border-none text-xs font-bold text-slate-800 dark:text-white px-2 py-1 focus:outline-none cursor-pointer">
+                </form>
+
+                {% if is_today %}
+                <span class="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-lg mr-1 animate-pulse">
+                    Today
+                </span>
+                {% endif %}
+
+                <a href="?date={{ next_date }}" class="tap-pop w-8 h-8 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition" title="Next Day">
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hero Section: Interactive Radial Rings & Energy Balance Gauge -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+        <!-- Calorie & Multi-Macro Radial Ring Card -->
+        <div class="animate-slide-up card-interactive lg:col-span-7 bg-white dark:bg-gradient-to-br dark:from-slate-900/90 dark:via-slate-900/70 dark:to-slate-950 border border-slate-200 dark:border-slate-800/90 rounded-3xl p-5 sm:p-6 shadow-xl relative overflow-hidden flex flex-col justify-between transition-colors">
+            <div class="flex items-center justify-between mb-2">
+                <div>
+                    <span class="text-xs font-extrabold uppercase tracking-wider text-amber-500 dark:text-amber-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-ring animate-spin" style="animation-duration: 12s;"></i> Energy & Macro Rings
+                    </span>
+                    <h2 class="text-base font-bold text-slate-900 dark:text-white mt-0.5">Daily Calorie & Nutrient Fulfillment</h2>
+                </div>
+                <span class="text-xs font-bold px-3 py-1 rounded-full border {{ analysis.calories.badge_class }} shadow-sm">
+                    {{ analysis.calories.badge }}
+                </span>
+            </div>
+
+            <!-- Radial Chart & Big Metric Display -->
+            <div class="grid grid-cols-1 sm:grid-cols-12 items-center gap-4 my-2">
+                <!-- Radial Bar Container with animated glow -->
+                <div class="sm:col-span-6 flex justify-center items-center relative">
+                    <div id="apexRadialRing" class="w-full flex justify-center"></div>
+                </div>
+
+                <!-- Summary Breakdown Stats with Animated Count-Up -->
+                <div class="sm:col-span-6 space-y-3">
+                    <div class="bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-3.5 hover:border-emerald-500/40 transition">
+                        <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Remaining Budget</span>
+                        <div class="text-2xl sm:text-3xl font-black {% if analysis.calories.remaining > 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-600 dark:text-rose-400{% endif %} tracking-tight mt-0.5">
+                            {% if analysis.calories.remaining > 0 %}
+                            <span class="counter-num" data-target="{{ analysis.calories.remaining }}">0</span> <span class="text-xs font-medium text-slate-500 dark:text-slate-400">kcal left</span>
+                            {% else %}
+                            +<span class="counter-num" data-target="{{ analysis.calories.over }}">0</span> <span class="text-xs font-medium text-rose-500 dark:text-rose-300">kcal over</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800/70 rounded-xl p-2.5">
+                            <span class="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Eaten</span>
+                            <span class="font-bold text-amber-500 dark:text-amber-400 text-sm counter-num" data-target="{{ analysis.calories.consumed }}">0</span>
+                            <span class="text-[10px] text-slate-400">kcal</span>
+                        </div>
+                        <div class="bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800/70 rounded-xl p-2.5">
+                            <span class="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Daily Target</span>
+                            <span class="font-bold text-slate-800 dark:text-slate-200 text-sm counter-num" data-target="{{ analysis.calories.target }}">0</span>
+                            <span class="text-[10px] text-slate-400">kcal</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Macronutrient Energy Distribution Ratio Bar -->
+            <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/70">
+                <div class="flex items-center justify-between text-xs font-bold mb-1.5">
+                    <span class="text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[10px]">Macro Energy Ratio (% kcal)</span>
+                    <div class="flex items-center gap-3 text-[11px]">
+                        <span class="text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> {{ analysis.macro_ratios.protein }}% Protein</span>
+                        <span class="text-blue-600 dark:text-blue-400 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-500"></span> {{ analysis.macro_ratios.carbs }}% Carbs</span>
+                        <span class="text-rose-600 dark:text-rose-400 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-rose-500"></span> {{ analysis.macro_ratios.fat }}% Fat</span>
+                    </div>
+                </div>
+                <!-- Segmented Multi-Bar with Shimmer -->
+                <div class="progress-shimmer w-full bg-slate-100 dark:bg-slate-950 h-3 rounded-full overflow-hidden flex p-0.5 border border-slate-200 dark:border-slate-800">
+                    <div class="bg-emerald-500 h-full rounded-l-full transition-all duration-1000 ease-out" style="width: {{ analysis.macro_ratios.protein }}%;"></div>
+                    <div class="bg-blue-500 h-full transition-all duration-1000 ease-out" style="width: {{ analysis.macro_ratios.carbs }}%;"></div>
+                    <div class="bg-rose-500 h-full rounded-r-full transition-all duration-1000 ease-out" style="width: {{ analysis.macro_ratios.fat }}%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hydration & Quick Action Command Box -->
+        <div class="lg:col-span-5 flex flex-col gap-4">
+
+            <!-- Interactive Water Tracker Card with Animated Level & Wave -->
+            <div class="animate-slide-up card-interactive bg-white dark:bg-gradient-to-br dark:from-slate-900/90 dark:to-cyan-950/30 border border-slate-200 dark:border-slate-800/90 rounded-3xl p-5 shadow-xl relative overflow-hidden flex-1 flex flex-col justify-between transition-colors" style="animation-delay: 100ms;">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-10 h-10 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-500 dark:text-cyan-400 shadow-sm animate-float">
+                            <i class="fa-solid fa-droplet text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Hydration Tracker</h3>
+                            <span class="text-xs text-slate-500 dark:text-slate-400">{{ analysis.water.glasses }} of {{ analysis.water.target_glasses }} glasses</span>
+                        </div>
+                    </div>
+                    <span class="text-xs font-bold px-2.5 py-0.5 rounded-full border {{ analysis.water.badge_class }}">
+                        {{ analysis.water.badge }}
+                    </span>
+                </div>
+
+                <!-- Animated Water Container Bar with Wave Shimmer -->
+                <div class="my-4">
+                    <div class="flex items-baseline justify-between mb-1.5">
+                        <div class="text-2xl font-black text-cyan-600 dark:text-cyan-300">
+                            <span class="counter-num" data-target="{{ analysis.water.consumed }}">0</span> <span class="text-xs font-normal text-slate-500 dark:text-slate-400">/ {{ analysis.water.target }} ml</span>
+                        </div>
+                        <span class="text-xs font-extrabold text-cyan-600 dark:text-cyan-400"><span class="counter-num" data-target="{{ analysis.water.actual_percentage }}">0</span>%</span>
+                    </div>
+
+                    <div class="progress-shimmer w-full bg-slate-100 dark:bg-slate-950 h-4 rounded-full overflow-hidden p-0.5 border border-slate-200 dark:border-slate-800 relative shadow-inner">
+                        <div class="h-full bg-gradient-to-r from-cyan-500 via-sky-400 to-blue-500 rounded-full transition-all duration-1000 ease-out shadow-sm shadow-cyan-500/40"
+                            style="width: {{ analysis.water.percentage }}%;"></div>
+                    </div>
+                </div>
+
+                <!-- Quick Water Tap Stepper Buttons -->
+                <div class="grid grid-cols-4 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/60">
+                    <form method="POST" action="{% url 'update_water' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="log_date" value="{{ current_date }}">
+                        <input type="hidden" name="delta_ml" value="-250">
+                        <button type="submit" class="tap-pop w-full py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition" title="Remove 250ml">
+                            -250ml
+                        </button>
+                    </form>
+                    <form method="POST" action="{% url 'update_water' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="log_date" value="{{ current_date }}">
+                        <input type="hidden" name="delta_ml" value="250">
+                        <button type="submit" class="tap-pop w-full py-2.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30 text-xs font-bold transition">
+                            +250ml
+                        </button>
+                    </form>
+                    <form method="POST" action="{% url 'update_water' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="log_date" value="{{ current_date }}">
+                        <input type="hidden" name="delta_ml" value="500">
+                        <button type="submit" class="tap-pop w-full py-2.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-700 dark:text-cyan-300 border border-cyan-500/40 text-xs font-bold transition">
+                            +500ml
+                        </button>
+                    </form>
+                    <form method="POST" action="{% url 'update_water' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="log_date" value="{{ current_date }}">
+                        <input type="hidden" name="delta_ml" value="1000">
+                        <button type="submit" class="tap-pop w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition shadow-md shadow-cyan-600/30">
+                            +1L
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Pro Quick Add Button & Action Trigger with Breathing Glow -->
+            <div class="animate-slide-up bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 border border-emerald-500/30 rounded-3xl p-4 flex items-center justify-between shadow-lg" style="animation-delay: 150ms;">
+                <div>
+                    <h4 class="text-sm font-bold text-slate-900 dark:text-white">Log Food Intake</h4>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400">Choose from 58+ items or custom foods</p>
+                </div>
+                <button onclick="openLogModal('breakfast')"
+                    class="tap-pop py-3 px-5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs flex items-center gap-2 shadow-xl shadow-emerald-500/30 transition">
+                    <i class="fa-solid fa-plus text-sm"></i>
+                    <span>Log Food</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4 Pro Macro Breakdown Cards with Micro-Interactions -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <!-- Protein Card -->
+        <div class="animate-slide-up card-interactive bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800/90 hover:border-emerald-500/50 rounded-3xl p-4 shadow-xl transition-all group" style="animation-delay: 200ms;">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-drumstick-bite group-hover:scale-110 transition-transform"></i> Protein
+                </span>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border {{ analysis.protein.badge_class }}">
+                    {{ analysis.protein.badge }}
+                </span>
+            </div>
+            <div class="my-2">
+                <div class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                    <span class="counter-num" data-target="{{ analysis.protein.consumed }}" data-decimals="1">0</span>g
+                    <span class="text-xs font-medium text-slate-500 dark:text-slate-400">/ {{ analysis.protein.target }}g</span>
+                </div>
+            </div>
+            <div class="progress-shimmer w-full bg-slate-100 dark:bg-slate-950 h-2.5 rounded-full overflow-hidden mt-3 p-0.5 border border-slate-200 dark:border-slate-800">
+                <div class="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-1000 ease-out shadow-sm shadow-emerald-500/30"
+                    style="width: {{ analysis.protein.percentage }}%;"></div>
+            </div>
+            <div class="flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400 mt-2 font-medium">
+                <span>{{ analysis.protein.actual_percentage }}% target</span>
+                <span>2.0g / kg bodyweight</span>
+            </div>
+        </div>
+
+        <!-- Carbs Card -->
+        <div class="animate-slide-up card-interactive bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800/90 hover:border-blue-500/50 rounded-3xl p-4 shadow-xl transition-all group" style="animation-delay: 250ms;">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-extrabold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-wheat-awn group-hover:scale-110 transition-transform"></i> Carbs
+                </span>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border {{ analysis.carbs.badge_class }}">
+                    {{ analysis.carbs.badge }}
+                </span>
+            </div>
+            <div class="my-2">
+                <div class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                    <span class="counter-num" data-target="{{ analysis.carbs.consumed }}" data-decimals="1">0</span>g
+                    <span class="text-xs font-medium text-slate-500 dark:text-slate-400">/ {{ analysis.carbs.target }}g</span>
+                </div>
+            </div>
+            <div class="progress-shimmer w-full bg-slate-100 dark:bg-slate-950 h-2.5 rounded-full overflow-hidden mt-3 p-0.5 border border-slate-200 dark:border-slate-800">
+                <div class="h-full bg-gradient-to-r from-blue-500 to-indigo-400 rounded-full transition-all duration-1000 ease-out shadow-sm shadow-blue-500/30"
+                    style="width: {{ analysis.carbs.percentage }}%;"></div>
+            </div>
+            <div class="flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400 mt-2 font-medium">
+                <span>{{ analysis.carbs.actual_percentage }}% target</span>
+                <span>Glycogen replenishment</span>
+            </div>
+        </div>
+
+        <!-- Fats Card -->
+        <div class="animate-slide-up card-interactive bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800/90 hover:border-rose-500/50 rounded-3xl p-4 shadow-xl transition-all group" style="animation-delay: 300ms;">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-extrabold uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-bacon group-hover:scale-110 transition-transform"></i> Fats
+                </span>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border {{ analysis.fat.badge_class }}">
+                    {{ analysis.fat.badge }}
+                </span>
+            </div>
+            <div class="my-2">
+                <div class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                    <span class="counter-num" data-target="{{ analysis.fat.consumed }}" data-decimals="1">0</span>g
+                    <span class="text-xs font-medium text-slate-500 dark:text-slate-400">/ {{ analysis.fat.target }}g</span>
+                </div>
+            </div>
+            <div class="progress-shimmer w-full bg-slate-100 dark:bg-slate-950 h-2.5 rounded-full overflow-hidden mt-3 p-0.5 border border-slate-200 dark:border-slate-800">
+                <div class="h-full bg-gradient-to-r from-rose-500 to-pink-400 rounded-full transition-all duration-1000 ease-out shadow-sm shadow-rose-500/30"
+                    style="width: {{ analysis.fat.percentage }}%;"></div>
+            </div>
+            <div class="flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400 mt-2 font-medium">
+                <span>{{ analysis.fat.actual_percentage }}% target</span>
+                <span>Hormone & cell support</span>
+            </div>
+        </div>
+
+        <!-- Fiber Card -->
+        <div class="animate-slide-up card-interactive col-span-2 sm:col-span-1 bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800/90 hover:border-violet-500/50 rounded-3xl p-4 shadow-xl transition-all group" style="animation-delay: 350ms;">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-extrabold uppercase tracking-wider text-violet-600 dark:text-violet-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-seedling group-hover:scale-110 transition-transform"></i> Fiber
+                </span>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border {{ analysis.fiber.badge_class }}">
+                    {{ analysis.fiber.badge }}
+                </span>
+            </div>
+            <div class="my-2">
+                <div class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                    <span class="counter-num" data-target="{{ analysis.fiber.consumed }}" data-decimals="1">0</span>g
+                    <span class="text-xs font-medium text-slate-500 dark:text-slate-400">/ {{ analysis.fiber.target }}g</span>
+                </div>
+            </div>
+            <div class="progress-shimmer w-full bg-slate-100 dark:bg-slate-950 h-2.5 rounded-full overflow-hidden mt-3 p-0.5 border border-slate-200 dark:border-slate-800">
+                <div class="h-full bg-gradient-to-r from-violet-500 to-purple-400 rounded-full transition-all duration-1000 ease-out shadow-sm shadow-violet-500/30"
+                    style="width: {{ analysis.fiber.percentage }}%;"></div>
+            </div>
+            <div class="flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400 mt-2 font-medium">
+                <span>{{ analysis.fiber.actual_percentage }}% target</span>
+                <span>Gut motility & satiety</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Smart Dietary Guidance & Nutrition Intelligence -->
+    {% if analysis.insights %}
+    <div class="animate-slide-up bg-white dark:bg-gradient-to-r dark:from-slate-900/90 dark:to-slate-900/70 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-5 shadow-xl space-y-3 transition-colors" style="animation-delay: 400ms;">
+        <div class="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+            <i class="fa-solid fa-wand-magic-sparkles text-emerald-500 dark:text-emerald-400 animate-pulse"></i> Nutrition Intelligence & Coaching
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {% for item in analysis.insights %}
+            <div class="bg-slate-50 dark:bg-slate-950/70 border-l-4 {{ item.border }} border-slate-200 dark:border-slate-800/80 rounded-2xl p-3.5 flex items-start gap-3 hover:translate-x-1 transition-transform">
+                <div class="mt-0.5 text-base">
+                    <i class="fa-solid {{ item.icon }}"></i>
+                </div>
+                <div>
+                    <h4 class="text-xs font-extrabold text-slate-900 dark:text-white mb-0.5">{{ item.title }}</h4>
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{{ item.msg }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Pro Meals Timeline & Log Entries -->
+    <div class="animate-slide-up space-y-4" style="animation-delay: 450ms;">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+                <h2 class="text-lg font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                    <i class="fa-solid fa-utensils text-emerald-500 dark:text-emerald-400"></i> Meals Breakdown
+                </h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Logged food items by meal period</p>
+            </div>
+
+            <!-- Quick Meal Category Filter Pills -->
+            <div class="flex items-center gap-1.5 text-xs font-semibold overflow-x-auto pb-1">
+                <button type="button" onclick="filterMeals('all')" class="meal-tab-btn active px-3 py-1.5 rounded-xl bg-emerald-500 text-white font-bold transition">All</button>
+                <button type="button" onclick="filterMeals('breakfast')" class="meal-tab-btn px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">Breakfast</button>
+                <button type="button" onclick="filterMeals('lunch')" class="meal-tab-btn px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">Lunch</button>
+                <button type="button" onclick="filterMeals('dinner')" class="meal-tab-btn px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">Dinner</button>
+                <button type="button" onclick="filterMeals('snack')" class="meal-tab-btn px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">Snacks</button>
+            </div>
+        </div>
+
+        <!-- Breakfast Card -->
+        <div class="meal-card breakfast-card card-interactive bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800/90 rounded-3xl p-5 shadow-xl transition-all">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-3 mb-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500 dark:text-amber-400 text-base shadow-sm animate-float">
+                        <i class="fa-solid fa-mug-saucer"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-sm font-black text-slate-900 dark:text-white">Breakfast</h3>
+                            <span class="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md">
+                                {{ meal_totals.breakfast.calories }} kcal
+                            </span>
+                        </div>
+                        <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                            <strong class="text-emerald-600 dark:text-emerald-400">{{ meal_totals.breakfast.protein }}g</strong> Protein &bull;
+                            <strong class="text-blue-600 dark:text-blue-400">{{ meal_totals.breakfast.carbs }}g</strong> Carbs &bull;
+                            <strong class="text-rose-600 dark:text-rose-400">{{ meal_totals.breakfast.fat }}g</strong> Fat
+                        </div>
+                    </div>
+                </div>
+                <button onclick="openLogModal('breakfast')" class="tap-pop py-1.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-plus text-[10px]"></i>
+                    <span>Add Item</span>
+                </button>
+            </div>
+
+            {% if meals.breakfast %}
+            <div class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                {% for item in meals.breakfast %}
+                <div class="py-2.5 flex items-center justify-between text-xs hover:bg-slate-50 dark:hover:bg-slate-800/20 px-2 rounded-xl transition">
+                    <div>
+                        <div class="font-bold text-slate-900 dark:text-white text-sm">{{ item.food.name }}</div>
+                        <div class="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
+                            {{ item.quantity }}x &bull; {{ item.serving_amount_g }}g &bull;
+                            <span class="text-emerald-600 dark:text-emerald-400 font-semibold">{{ item.protein }}g P</span> &bull;
+                            <span class="text-blue-600 dark:text-blue-400 font-semibold">{{ item.carbs }}g C</span> &bull;
+                            <span class="text-rose-600 dark:text-rose-400 font-semibold">{{ item.fat }}g F</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="font-black text-amber-500 dark:text-amber-400 text-sm">{{ item.calories }} kcal</span>
+                        <form method="POST" action="{% url 'delete_food_log' item.id %}" onsubmit="return confirm('Remove this food item?');">
+                            {% csrf_token %}
+                            <button type="submit" class="tap-pop w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800/60 hover:bg-rose-500/20 text-slate-400 hover:text-rose-500 flex items-center justify-center transition" title="Delete">
+                                <i class="fa-regular fa-trash-can text-xs"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-4 border border-dashed border-slate-200 dark:border-slate-800/70 rounded-2xl">
+                <p class="text-xs text-slate-500 italic">No breakfast logged yet &bull; Tap <span class="text-emerald-500 font-semibold">+ Add Item</span> to record your morning meal</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Lunch Card -->
+        <div class="meal-card lunch-card card-interactive bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800/90 rounded-3xl p-5 shadow-xl transition-all">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-3 mb-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-500 dark:text-emerald-400 text-base shadow-sm animate-float">
+                        <i class="fa-solid fa-bowl-rice"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-sm font-black text-slate-900 dark:text-white">Lunch</h3>
+                            <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
+                                {{ meal_totals.lunch.calories }} kcal
+                            </span>
+                        </div>
+                        <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                            <strong class="text-emerald-600 dark:text-emerald-400">{{ meal_totals.lunch.protein }}g</strong> Protein &bull;
+                            <strong class="text-blue-600 dark:text-blue-400">{{ meal_totals.lunch.carbs }}g</strong> Carbs &bull;
+                            <strong class="text-rose-600 dark:text-rose-400">{{ meal_totals.lunch.fat }}g</strong> Fat
+                        </div>
+                    </div>
+                </div>
+                <button onclick="openLogModal('lunch')" class="tap-pop py-1.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-plus text-[10px]"></i>
+                    <span>Add Item</span>
+                </button>
+            </div>
+
+            {% if meals.lunch %}
+            <div class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                {% for item in meals.lunch %}
+                <div class="py-2.5 flex items-center justify-between text-xs hover:bg-slate-50 dark:hover:bg-slate-800/20 px-2 rounded-xl transition">
+                    <div>
+                        <div class="font-bold text-slate-900 dark:text-white text-sm">{{ item.food.name }}</div>
+                        <div class="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
+                            {{ item.quantity }}x &bull; {{ item.serving_amount_g }}g &bull;
+                            <span class="text-emerald-600 dark:text-emerald-400 font-semibold">{{ item.protein }}g P</span> &bull;
+                            <span class="text-blue-600 dark:text-blue-400 font-semibold">{{ item.carbs }}g C</span> &bull;
+                            <span class="text-rose-600 dark:text-rose-400 font-semibold">{{ item.fat }}g F</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="font-black text-amber-500 dark:text-amber-400 text-sm">{{ item.calories }} kcal</span>
+                        <form method="POST" action="{% url 'delete_food_log' item.id %}" onsubmit="return confirm('Remove this food item?');">
+                            {% csrf_token %}
+                            <button type="submit" class="tap-pop w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800/60 hover:bg-rose-500/20 text-slate-400 hover:text-rose-500 flex items-center justify-center transition" title="Delete">
+                                <i class="fa-regular fa-trash-can text-xs"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-4 border border-dashed border-slate-200 dark:border-slate-800/70 rounded-2xl">
+                <p class="text-xs text-slate-500 italic">No lunch logged yet &bull; Tap <span class="text-emerald-500 font-semibold">+ Add Item</span> to record your midday meal</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Dinner Card -->
+        <div class="meal-card dinner-card card-interactive bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800/90 rounded-3xl p-5 shadow-xl transition-all">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-3 mb-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-500 dark:text-indigo-400 text-base shadow-sm animate-float">
+                        <i class="fa-solid fa-moon"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-sm font-black text-slate-900 dark:text-white">Dinner</h3>
+                            <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-md">
+                                {{ meal_totals.dinner.calories }} kcal
+                            </span>
+                        </div>
+                        <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                            <strong class="text-emerald-600 dark:text-emerald-400">{{ meal_totals.dinner.protein }}g</strong> Protein &bull;
+                            <strong class="text-blue-600 dark:text-blue-400">{{ meal_totals.dinner.carbs }}g</strong> Carbs &bull;
+                            <strong class="text-rose-600 dark:text-rose-400">{{ meal_totals.dinner.fat }}g</strong> Fat
+                        </div>
+                    </div>
+                </div>
+                <button onclick="openLogModal('dinner')" class="tap-pop py-1.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-plus text-[10px]"></i>
+                    <span>Add Item</span>
+                </button>
+            </div>
+
+            {% if meals.dinner %}
+            <div class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                {% for item in meals.dinner %}
+                <div class="py-2.5 flex items-center justify-between text-xs hover:bg-slate-50 dark:hover:bg-slate-800/20 px-2 rounded-xl transition">
+                    <div>
+                        <div class="font-bold text-slate-900 dark:text-white text-sm">{{ item.food.name }}</div>
+                        <div class="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
+                            {{ item.quantity }}x &bull; {{ item.serving_amount_g }}g &bull;
+                            <span class="text-emerald-600 dark:text-emerald-400 font-semibold">{{ item.protein }}g P</span> &bull;
+                            <span class="text-blue-600 dark:text-blue-400 font-semibold">{{ item.carbs }}g C</span> &bull;
+                            <span class="text-rose-600 dark:text-rose-400 font-semibold">{{ item.fat }}g F</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="font-black text-amber-500 dark:text-amber-400 text-sm">{{ item.calories }} kcal</span>
+                        <form method="POST" action="{% url 'delete_food_log' item.id %}" onsubmit="return confirm('Remove this food item?');">
+                            {% csrf_token %}
+                            <button type="submit" class="tap-pop w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800/60 hover:bg-rose-500/20 text-slate-400 hover:text-rose-500 flex items-center justify-center transition" title="Delete">
+                                <i class="fa-regular fa-trash-can text-xs"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-4 border border-dashed border-slate-200 dark:border-slate-800/70 rounded-2xl">
+                <p class="text-xs text-slate-500 italic">No dinner logged yet &bull; Tap <span class="text-emerald-500 font-semibold">+ Add Item</span> to record your evening meal</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Snacks Card -->
+        <div class="meal-card snack-card card-interactive bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800/90 rounded-3xl p-5 shadow-xl transition-all">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-3 mb-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-pink-500/15 border border-pink-500/30 flex items-center justify-center text-pink-500 dark:text-pink-400 text-base shadow-sm animate-float">
+                        <i class="fa-solid fa-apple-whole"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-sm font-black text-slate-900 dark:text-white">Snacks & Other Fuel</h3>
+                            <span class="text-xs font-bold text-pink-600 dark:text-pink-400 bg-pink-500/10 border border-pink-500/20 px-2 py-0.5 rounded-md">
+                                {{ meal_totals.snack.calories }} kcal
+                            </span>
+                        </div>
+                        <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                            <strong class="text-emerald-600 dark:text-emerald-400">{{ meal_totals.snack.protein }}g</strong> Protein &bull;
+                            <strong class="text-blue-600 dark:text-blue-400">{{ meal_totals.snack.carbs }}g</strong> Carbs &bull;
+                            <strong class="text-rose-600 dark:text-rose-400">{{ meal_totals.snack.fat }}g</strong> Fat
+                        </div>
+                    </div>
+                </div>
+                <button onclick="openLogModal('snack')" class="tap-pop py-1.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-plus text-[10px]"></i>
+                    <span>Add Item</span>
+                </button>
+            </div>
+
+            {% if meals.snack %}
+            <div class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                {% for item in meals.snack %}
+                <div class="py-2.5 flex items-center justify-between text-xs hover:bg-slate-50 dark:hover:bg-slate-800/20 px-2 rounded-xl transition">
+                    <div>
+                        <div class="font-bold text-slate-900 dark:text-white text-sm">{{ item.food.name }}</div>
+                        <div class="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
+                            {{ item.quantity }}x &bull; {{ item.serving_amount_g }}g &bull;
+                            <span class="text-emerald-600 dark:text-emerald-400 font-semibold">{{ item.protein }}g P</span> &bull;
+                            <span class="text-blue-600 dark:text-blue-400 font-semibold">{{ item.carbs }}g C</span> &bull;
+                            <span class="text-rose-600 dark:text-rose-400 font-semibold">{{ item.fat }}g F</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="font-black text-amber-500 dark:text-amber-400 text-sm">{{ item.calories }} kcal</span>
+                        <form method="POST" action="{% url 'delete_food_log' item.id %}" onsubmit="return confirm('Remove this food item?');">
+                            {% csrf_token %}
+                            <button type="submit" class="tap-pop w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800/60 hover:bg-rose-500/20 text-slate-400 hover:text-rose-500 flex items-center justify-center transition" title="Delete">
+                                <i class="fa-regular fa-trash-can text-xs"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-4 border border-dashed border-slate-200 dark:border-slate-800/70 rounded-2xl">
+                <p class="text-xs text-slate-500 italic">No snacks logged &bull; Tap <span class="text-emerald-500 font-semibold">+ Add Item</span> to record light bites or protein shakes</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Pro Food Logging Modal with Live Interactive Hologram Preview -->
+<div id="logFoodModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl max-h-[92vh] overflow-y-auto transition-all transform scale-100">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
+            <div>
+                <h3 class="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <i class="fa-solid fa-fire-burner text-emerald-500"></i> Log Food Intake
+                </h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Select food, adjust portion, and review live nutrients</p>
+            </div>
+            <button type="button" onclick="closeLogModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">
+                &times;
+            </button>
+        </div>
+
+        <form method="POST" action="{% url 'log_food' %}" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="log_date" value="{{ current_date }}">
+
+            <!-- Meal Type Selector Pills -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Meal Period</label>
+                <div class="grid grid-cols-4 gap-2">
+                    <label class="meal-radio-label cursor-pointer">
+                        <input type="radio" name="meal_type" value="breakfast" class="peer sr-only" checked>
+                        <div class="text-center py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-xs font-bold text-slate-500 dark:text-slate-400 peer-checked:bg-amber-500/20 peer-checked:text-amber-600 dark:peer-checked:text-amber-300 peer-checked:border-amber-500/50 transition">
+                            Breakfast
+                        </div>
+                    </label>
+                    <label class="meal-radio-label cursor-pointer">
+                        <input type="radio" name="meal_type" value="lunch" class="peer sr-only">
+                        <div class="text-center py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-xs font-bold text-slate-500 dark:text-slate-400 peer-checked:bg-emerald-500/20 peer-checked:text-emerald-600 dark:peer-checked:text-emerald-300 peer-checked:border-emerald-500/50 transition">
+                            Lunch
+                        </div>
+                    </label>
+                    <label class="meal-radio-label cursor-pointer">
+                        <input type="radio" name="meal_type" value="dinner" class="peer sr-only">
+                        <div class="text-center py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-xs font-bold text-slate-500 dark:text-slate-400 peer-checked:bg-indigo-500/20 peer-checked:text-indigo-600 dark:peer-checked:text-indigo-300 peer-checked:border-indigo-500/50 transition">
+                            Dinner
+                        </div>
+                    </label>
+                    <label class="meal-radio-label cursor-pointer">
+                        <input type="radio" name="meal_type" value="snack" class="peer sr-only">
+                        <div class="text-center py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-xs font-bold text-slate-500 dark:text-slate-400 peer-checked:bg-pink-500/20 peer-checked:text-pink-600 dark:peer-checked:text-pink-300 peer-checked:border-pink-500/50 transition">
+                            Snacks
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Food Search & Dropdown -->
+            <div>
+                <div class="flex justify-between items-center mb-1.5">
+                    <label for="foodSelect" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Select Food Item</label>
+                    <a href="{% url 'foods_list' %}" class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline">+ Custom Food</a>
+                </div>
+
+                <div class="relative">
+                    <select id="foodSelect" name="food_id" required class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-3 px-3.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 shadow-inner">
+                        <option value="">-- Choose Food from Library --</option>
+                        {% for f in available_foods %}
+                        <option value="{{ f.id }}"
+                            data-name="{{ f.name }}"
+                            data-cal="{{ f.calories }}"
+                            data-prot="{{ f.protein }}"
+                            data-carbs="{{ f.carbs }}"
+                            data-fat="{{ f.fat }}"
+                            data-fiber="{{ f.fiber }}"
+                            data-g="{{ f.serving_size_g }}"
+                            data-unit="{{ f.serving_unit }}">
+                            {{ f.name }} ({{ f.calories }} kcal &bull; {{ f.serving_unit }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Portion Multiplier Stepper -->
+            <div>
+                <div class="flex justify-between items-center mb-1.5">
+                    <label for="quantityInput" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Portion / Servings Multiplier</label>
+                    <span id="servingWeightBadge" class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">100g</span>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="stepQty(-0.25)" class="tap-pop w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-black text-sm flex items-center justify-center transition">-</button>
+                    <input type="number" step="0.05" min="0.05" max="50" id="quantityInput" name="quantity" value="1.0"
+                        class="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-center text-sm font-black text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 shadow-inner">
+                    <button type="button" onclick="stepQty(0.25)" class="tap-pop w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-black text-sm flex items-center justify-center transition">+</button>
+                </div>
+
+                <!-- Quick Multiplier Chips -->
+                <div class="flex items-center gap-1.5 mt-2">
+                    <button type="button" onclick="setQty(0.5)" class="tap-pop flex-1 py-1 rounded-lg bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs text-slate-600 dark:text-slate-300 transition">0.5x</button>
+                    <button type="button" onclick="setQty(1.0)" class="tap-pop flex-1 py-1 rounded-lg bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs text-slate-600 dark:text-slate-300 transition">1.0x</button>
+                    <button type="button" onclick="setQty(1.5)" class="tap-pop flex-1 py-1 rounded-lg bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs text-slate-600 dark:text-slate-300 transition">1.5x</button>
+                    <button type="button" onclick="setQty(2.0)" class="tap-pop flex-1 py-1 rounded-lg bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs text-slate-600 dark:text-slate-300 transition">2.0x</button>
+                </div>
+            </div>
+
+            <!-- Live Animated Nutrition Hologram Preview -->
+            <div id="livePreviewBox" class="hidden bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:to-slate-900 border border-emerald-500/40 rounded-2xl p-4 shadow-xl">
+                <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-200 dark:border-slate-800/80">
+                    <div>
+                        <span id="previewFoodName" class="text-xs font-black text-slate-900 dark:text-white block">Selected Food</span>
+                        <span id="previewPortionText" class="text-[11px] text-slate-500 dark:text-slate-400">1 Serving (100g)</span>
+                    </div>
+                    <div class="text-right">
+                        <span id="previewCalText" class="text-xl font-black text-amber-500 dark:text-amber-400 tracking-tight">0 kcal</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-4 gap-2 text-center text-xs">
+                    <div class="bg-white dark:bg-slate-900/90 rounded-xl p-2 border border-emerald-500/20 shadow-sm">
+                        <span class="block text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Protein</span>
+                        <span id="previewProtText" class="text-sm font-black text-slate-900 dark:text-white">0g</span>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900/90 rounded-xl p-2 border border-blue-500/20 shadow-sm">
+                        <span class="block text-[10px] text-blue-600 dark:text-blue-400 font-semibold">Carbs</span>
+                        <span id="previewCarbsText" class="text-sm font-black text-slate-900 dark:text-white">0g</span>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900/90 rounded-xl p-2 border border-rose-500/20 shadow-sm">
+                        <span class="block text-[10px] text-rose-600 dark:text-rose-400 font-semibold">Fats</span>
+                        <span id="previewFatText" class="text-sm font-black text-slate-900 dark:text-white">0g</span>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900/90 rounded-xl p-2 border border-violet-500/20 shadow-sm">
+                        <span class="block text-[10px] text-violet-600 dark:text-violet-400 font-semibold">Fiber</span>
+                        <span id="previewFiberText" class="text-sm font-black text-slate-900 dark:text-white">0g</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit & Cancel Buttons -->
+            <div class="flex items-center gap-2 pt-2">
+                <button type="button" onclick="closeLogModal()" class="tap-pop w-1/3 py-3 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+                    Cancel
+                </button>
+                <button type="submit" class="tap-pop w-2/3 py-3 rounded-2xl text-xs font-black text-white bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-600 hover:to-teal-600 shadow-xl shadow-emerald-500/25 transition flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Log to Meal</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Count-Up Number Animation
+    function animateCounters() {
+        const counters = document.querySelectorAll('.counter-num');
+        counters.forEach(counter => {
+            const target = parseFloat(counter.getAttribute('data-target')) || 0;
+            const decimals = parseInt(counter.getAttribute('data-decimals')) || 0;
+            const duration = 1200; // ms
+            const startTime = performance.now();
+
+            function updateCounter(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                // Ease out quad: progress * (2 - progress)
+                const easeProgress = progress * (2 - progress);
+                const currentVal = target * easeProgress;
+
+                counter.textContent = decimals > 0 ? currentVal.toFixed(decimals) : Math.round(currentVal);
+
+                if (progress < 1) {
+                    requestAnimationFrame(updateCounter);
+                } else {
+                    counter.textContent = decimals > 0 ? target.toFixed(decimals) : Math.round(target);
+                }
+            }
+
+            requestAnimationFrame(updateCounter);
+        });
+    }
+
+    // Goal Met Celebration Confetti
+    function triggerCelebration() {
+        {% if analysis.calories.status == 'optimal' or analysis.protein.status == 'optimal' %}
+        if (typeof confetti === 'function') {
+            setTimeout(() => {
+                confetti({
+                    particleCount: 50,
+                    spread: 60,
+                    origin: { y: 0.75 },
+                    colors: ['#10b981', '#3b82f6', '#f59e0b', '#06b6d4']
+                });
+            }, 600);
+        }
+        {% endif %}
+    }
+
+    // Meal Filter Tabs
+    function filterMeals(category) {
+        document.querySelectorAll('.meal-tab-btn').forEach(btn => {
+            btn.classList.remove('bg-emerald-500', 'text-white', 'font-bold');
+            btn.classList.add('bg-slate-100', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-400');
+        });
+        event.target.classList.remove('bg-slate-100', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-400');
+        event.target.classList.add('bg-emerald-500', 'text-white', 'font-bold');
+
+        const allCards = document.querySelectorAll('.meal-card');
+        if (category === 'all') {
+            allCards.forEach(c => c.style.display = '');
+        } else {
+            allCards.forEach(c => {
+                if (c.classList.contains(category + '-card')) {
+                    c.style.display = '';
+                } else {
+                    c.style.display = 'none';
+                }
+            });
+        }
+    }
+
+    // Modal Handlers
+    function openLogModal(meal) {
+        const modal = document.getElementById('logFoodModal');
+        if (meal) {
+            const radio = document.querySelector(`input[name="meal_type"][value="${meal}"]`);
+            if (radio) radio.checked = true;
+        }
+        if (modal) {
+            modal.classList.remove('hidden');
+            updatePreview();
+        }
+    }
+
+    function closeLogModal() {
+        const modal = document.getElementById('logFoodModal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    function stepQty(amount) {
+        const qtyInput = document.getElementById('quantityInput');
+        if (qtyInput) {
+            let current = parseFloat(qtyInput.value) || 1.0;
+            let updated = Math.max(0.1, Math.round((current + amount) * 100) / 100);
+            qtyInput.value = updated;
+            updatePreview();
+        }
+    }
+
+    function setQty(val) {
+        const qtyInput = document.getElementById('quantityInput');
+        if (qtyInput) {
+            qtyInput.value = val;
+            updatePreview();
+        }
+    }
+
+    function updatePreview() {
+        const foodSelect = document.getElementById('foodSelect');
+        const qtyInput = document.getElementById('quantityInput');
+        const box = document.getElementById('livePreviewBox');
+
+        if (!foodSelect || !qtyInput || !box) return;
+
+        const opt = foodSelect.options[foodSelect.selectedIndex];
+        if (!opt || !opt.value) {
+            box.classList.add('hidden');
+            return;
+        }
+
+        const qty = parseFloat(qtyInput.value) || 1.0;
+        const name = opt.getAttribute('data-name') || opt.text;
+        const cal = parseFloat(opt.getAttribute('data-cal')) || 0;
+        const prot = parseFloat(opt.getAttribute('data-prot')) || 0;
+        const carbs = parseFloat(opt.getAttribute('data-carbs')) || 0;
+        const fat = parseFloat(opt.getAttribute('data-fat')) || 0;
+        const fiber = parseFloat(opt.getAttribute('data-fiber')) || 0;
+        const servingG = parseFloat(opt.getAttribute('data-g')) || 100;
+        const servingUnit = opt.getAttribute('data-unit') || 'serving';
+
+        const totalGrams = Math.round(servingG * qty);
+        document.getElementById('servingWeightBadge').textContent = `${totalGrams}g (${qty}x)`;
+        document.getElementById('previewFoodName').textContent = name;
+        document.getElementById('previewPortionText').textContent = `${qty}x Portion (${totalGrams}g / ${servingUnit})`;
+        document.getElementById('previewCalText').textContent = `${Math.round(cal * qty)} kcal`;
+        document.getElementById('previewProtText').textContent = `${(prot * qty).toFixed(1)}g`;
+        document.getElementById('previewCarbsText').textContent = `${(carbs * qty).toFixed(1)}g`;
+        document.getElementById('previewFatText').textContent = `${(fat * qty).toFixed(1)}g`;
+        document.getElementById('previewFiberText').textContent = `${(fiber * qty).toFixed(1)}g`;
+
+        box.classList.remove('hidden');
+    }
+
+    let apexRadialChart = null;
+    function renderDashboardCharts() {
+        const ringElement = document.getElementById('apexRadialRing');
+        if (!ringElement) return;
+
+        if (apexRadialChart) {
+            apexRadialChart.destroy();
+        }
+
+        const isDark = document.documentElement.classList.contains('dark');
+        const trackColor = isDark ? '#1e293b' : '#f1f5f9';
+        const labelColor = isDark ? '#ffffff' : '#0f172a';
+        const subLabelColor = isDark ? '#94a3b8' : '#64748b';
+
+        const calPct = Math.min(100, Math.round({{ analysis.calories.actual_percentage }}));
+        const protPct = Math.min(100, Math.round({{ analysis.protein.actual_percentage }}));
+        const carbsPct = Math.min(100, Math.round({{ analysis.carbs.actual_percentage }}));
+
+        const options = {
+            series: [calPct, protPct, carbsPct],
+            chart: {
+                height: 250,
+                type: 'radialBar',
+                animations: {
+                    enabled: true,
+                    easing: 'easeinout',
+                    speed: 1200,
+                    animateGradually: {
+                        enabled: true,
+                        delay: 150
+                    },
+                    dynamicAnimation: {
+                        enabled: true,
+                        speed: 500
+                    }
+                }
+            },
+            plotOptions: {
+                radialBar: {
+                    hollow: { size: '32%' },
+                    track: {
+                        background: trackColor,
+                        strokeWidth: '100%',
+                        opacity: 0.6,
+                        margin: 5
+                    },
+                    dataLabels: {
+                        name: {
+                            fontSize: '11px',
+                            color: subLabelColor,
+                            offsetY: -2
+                        },
+                        value: {
+                            fontSize: '16px',
+                            fontWeight: 800,
+                            color: labelColor,
+                            offsetY: 4,
+                            formatter: function (val) {
+                                return val + "%";
+                            }
+                        },
+                        total: {
+                            show: true,
+                            label: 'Calories',
+                            color: '#f59e0b',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            formatter: function () {
+                                return calPct + "%";
+                            }
+                        }
+                    }
+                }
+            },
+            colors: ['#f59e0b', '#10b981', '#3b82f6'],
+            labels: ['Calories', 'Protein', 'Carbs'],
+            stroke: { lineCap: 'round' }
+        };
+
+        apexRadialChart = new ApexCharts(ringElement, options);
+        apexRadialChart.render();
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const foodSelect = document.getElementById('foodSelect');
+        const qtyInput = document.getElementById('quantityInput');
+
+        if (foodSelect) foodSelect.addEventListener('change', updatePreview);
+        if (qtyInput) qtyInput.addEventListener('input', updatePreview);
+
+        renderDashboardCharts();
+        animateCounters();
+        triggerCelebration();
+    });
+</script>
+{% endblock %}

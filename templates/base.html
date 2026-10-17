@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{% block title %}NutriFit - Nutrition & Fitness Tracker{% endblock %}</title>
+    <!-- SVG Data URI Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥗</text></svg>">
+    
+    <!-- Instant Theme Detection Script (Prevents White/Dark Flash) -->
+    <script>
+        if (localStorage.getItem('theme') === 'light') {
+            document.documentElement.classList.remove('dark');
+        } else {
+            // Default to dark mode for fitness aesthetic
+            document.documentElement.classList.add('dark');
+        }
+    </script>
+
+    <!-- Pure Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            950: '#090d16',
+                            900: '#0f172a',
+                            800: '#1e293b',
+                            700: '#334155'
+                        },
+                        brand: {
+                            emerald: '#10b981',
+                            cyan: '#06b6d4',
+                            amber: '#f59e0b',
+                            rose: '#f43f5e',
+                            violet: '#8b5cf6'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- ApexCharts for Pro Interactive Rings & Charts -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <!-- Confetti Celebrations -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        /* Smooth scrolling and touch optimizations */
+        html { -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Smooth Staggered Entrance Keyframes */
+        @keyframes fadeInSlideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInSlideDown {
+            from { opacity: 0; transform: translateY(-16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes floatGently {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        @keyframes glowPulse {
+            0%, 100% { box-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
+            50% { box-shadow: 0 0 25px rgba(16, 185, 129, 0.45); }
+        }
+        @keyframes shimmerGleam {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(200%); }
+        }
+
+        .animate-slide-up {
+            animation: fadeInSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .animate-slide-down {
+            animation: fadeInSlideDown 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .animate-float {
+            animation: floatGently 3.5s ease-in-out infinite;
+        }
+        .animate-glow {
+            animation: glowPulse 3s ease-in-out infinite;
+        }
+
+        /* Shimmering highlight bar */
+        .progress-shimmer {
+            position: relative;
+            overflow: hidden;
+        }
+        .progress-shimmer::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmerGleam 2.5s infinite;
+        }
+
+        /* Card interactive scale */
+        .card-interactive {
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .card-interactive:hover {
+            transform: translateY(-3px);
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="min-h-full flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-20 md:pb-6 transition-colors duration-200 selection:bg-emerald-500 selection:text-white">
+
+    <!-- Desktop / Tablet Navbar -->
+    <header class="sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="{% url 'dashboard' %}" class="flex items-center gap-2.5 group">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform">
+                    <i class="fa-solid fa-heart-pulse text-white text-lg"></i>
+                </div>
+                <div>
+                    <span class="text-lg font-black tracking-tight bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 bg-clip-text text-transparent">NutriFit</span>
+                    <span class="hidden sm:inline text-xs block text-slate-500 dark:text-slate-400 font-medium">Daily Macro Calculator</span>
+                </div>
+            </a>
+
+            {% if user.is_authenticated %}
+            <!-- Desktop Nav Links -->
+            <nav class="hidden md:flex items-center gap-1.5 text-sm font-semibold">
+                <a href="{% url 'dashboard' %}" class="px-3.5 py-2 rounded-xl transition-colors {% if active_tab == 'dashboard' %}bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/30{% else %}text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60{% endif %}">
+                    <i class="fa-solid fa-chart-pie mr-1.5 text-xs"></i> Tracker
+                </a>
+                <a href="{% url 'foods_list' %}" class="px-3.5 py-2 rounded-xl transition-colors {% if active_tab == 'foods' %}bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/30{% else %}text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60{% endif %}">
+                    <i class="fa-solid fa-bowl-food mr-1.5 text-xs"></i> Food Library
+                </a>
+                <a href="{% url 'history' %}" class="px-3.5 py-2 rounded-xl transition-colors {% if active_tab == 'history' %}bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/30{% else %}text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60{% endif %}">
+                    <i class="fa-solid fa-calendar-days mr-1.5 text-xs"></i> History
+                </a>
+                <a href="{% url 'profile' %}" class="px-3.5 py-2 rounded-xl transition-colors {% if active_tab == 'profile' %}bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/30{% else %}text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60{% endif %}">
+                    <i class="fa-solid fa-user-gear mr-1.5 text-xs"></i> Goals & Targets
+                </a>
+            </nav>
+
+            <div class="flex items-center gap-2">
+                <!-- Theme Toggle Button -->
+                <button type="button" onclick="toggleTheme()" class="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-amber-500 dark:hover:text-amber-400 flex items-center justify-center border border-slate-200 dark:border-slate-700 transition active:scale-95 shadow-sm" title="Toggle Light / Dark Mode">
+                    <i class="fa-solid fa-sun text-sm hidden dark:block text-amber-400"></i>
+                    <i class="fa-solid fa-moon text-sm block dark:hidden text-indigo-600"></i>
+                </button>
+
+                <div class="hidden sm:flex items-center gap-2 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-full py-1 px-3 text-xs text-slate-700 dark:text-slate-300">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="font-bold">{{ user.username }}</span>
+                </div>
+                <a href="{% url 'logout' %}" class="text-xs text-slate-500 dark:text-slate-400 hover:text-rose-500 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Logout">
+                    <i class="fa-solid fa-arrow-right-from-bracket text-sm"></i>
+                </a>
+            </div>
+            {% else %}
+            <div class="flex items-center gap-2">
+                <!-- Theme Toggle for guest -->
+                <button type="button" onclick="toggleTheme()" class="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-amber-400 flex items-center justify-center border border-slate-200 dark:border-slate-700 transition" title="Toggle Light/Dark Theme">
+                    <i class="fa-solid fa-sun text-xs hidden dark:block text-amber-400"></i>
+                    <i class="fa-solid fa-moon text-xs block dark:hidden text-indigo-600"></i>
+                </button>
+                <a href="{% url 'login' %}" class="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition">Log In</a>
+                <a href="{% url 'register' %}" class="text-xs sm:text-sm font-bold bg-emerald-500 hover:bg-emerald-600 text-white px-3.5 py-1.5 rounded-xl shadow-md shadow-emerald-500/25 transition">Get Started</a>
+            </div>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-5xl w-full mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        <!-- Django Flash Messages -->
+        {% if messages %}
+        <div class="mb-4 space-y-2">
+            {% for message in messages %}
+            <div class="p-3.5 rounded-2xl text-sm flex items-center justify-between border shadow-lg {% if message.tags == 'error' %}bg-rose-500/15 border-rose-500/40 text-rose-700 dark:text-rose-300{% elif message.tags == 'success' %}bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300{% elif message.tags == 'warning' %}bg-amber-500/15 border-amber-500/40 text-amber-700 dark:text-amber-300{% else %}bg-blue-500/15 border-blue-500/40 text-blue-700 dark:text-blue-300{% endif %}">
+                <div class="flex items-center gap-2.5 font-medium">
+                    {% if message.tags == 'error' %}
+                    <i class="fa-solid fa-circle-exclamation text-rose-500"></i>
+                    {% elif message.tags == 'success' %}
+                    <i class="fa-solid fa-circle-check text-emerald-500"></i>
+                    {% else %}
+                    <i class="fa-solid fa-circle-info text-blue-500"></i>
+                    {% endif %}
+                    <span>{{ message }}</span>
+                </div>
+                <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-900 dark:hover:text-white text-base leading-none">&times;</button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    {% if user.is_authenticated %}
+    <!-- Mobile App Bottom Navigation Bar -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 shadow-2xl px-2 py-1.5 flex items-center justify-around transition-colors">
+        <a href="{% url 'dashboard' %}" class="flex flex-col items-center py-1 px-3 rounded-xl transition {% if active_tab == 'dashboard' %}text-emerald-500 dark:text-emerald-400 font-bold{% else %}text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200{% endif %}">
+            <i class="fa-solid fa-chart-pie text-lg mb-0.5"></i>
+            <span class="text-[10px]">Today</span>
+        </a>
+        <a href="{% url 'foods_list' %}" class="flex flex-col items-center py-1 px-3 rounded-xl transition {% if active_tab == 'foods' %}text-emerald-500 dark:text-emerald-400 font-bold{% else %}text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200{% endif %}">
+            <i class="fa-solid fa-bowl-food text-lg mb-0.5"></i>
+            <span class="text-[10px]">Foods</span>
+        </a>
+
+        <!-- Floating Quick Add Button in center -->
+        <button type="button" onclick="openLogModal('breakfast')" class="-mt-5 w-12 h-12 rounded-full bg-gradient-to-tr from-emerald-500 to-cyan-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/40 hover:scale-105 active:scale-95 transition border-2 border-white dark:border-slate-950">
+            <i class="fa-solid fa-plus text-xl"></i>
+        </button>
+
+        <a href="{% url 'history' %}" class="flex flex-col items-center py-1 px-3 rounded-xl transition {% if active_tab == 'history' %}text-emerald-500 dark:text-emerald-400 font-bold{% else %}text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200{% endif %}">
+            <i class="fa-solid fa-calendar-days text-lg mb-0.5"></i>
+            <span class="text-[10px]">History</span>
+        </a>
+
+        <a href="{% url 'profile' %}" class="flex flex-col items-center py-1 px-3 rounded-xl transition {% if active_tab == 'profile' %}text-emerald-500 dark:text-emerald-400 font-bold{% else %}text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200{% endif %}">
+            <i class="fa-solid fa-user text-lg mb-0.5"></i>
+            <span class="text-[10px]">Goals</span>
+        </a>
+    </nav>
+    {% endif %}
+
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+            // Trigger chart redraw if function exists
+            if (typeof renderDashboardCharts === 'function') {
+                renderDashboardCharts();
+            }
+        }
+    </script>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

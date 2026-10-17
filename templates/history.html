@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Nutrition History & Trends - NutriFit{% endblock %}
+
+{% block extra_head %}
+<!-- Chart.js for lightweight mobile charts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                <i class="fa-solid fa-chart-line text-emerald-500"></i> Intake History & Trends
+            </h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Review your caloric consistency and macronutrient compliance over time</p>
+        </div>
+        <div class="text-right">
+            <span class="text-xs text-slate-500 dark:text-slate-400 block">Daily Target</span>
+            <span class="text-sm font-bold text-amber-500 dark:text-amber-400">{{ targets.calories }} kcal &bull; {{ targets.protein }}g P</span>
+        </div>
+    </div>
+
+    <!-- Chart Cards -->
+    <div class="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 sm:p-6 shadow-xl transition-colors">
+        <h2 class="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-fire text-amber-500"></i> Calorie Intake vs Daily Target (Last 14 Days)
+        </h2>
+        <div class="h-64 w-full">
+            <canvas id="caloriesChart"></canvas>
+        </div>
+    </div>
+
+    <!-- History Table Card -->
+    <div class="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xl transition-colors">
+        <h2 class="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-table-list text-emerald-500"></i> Logged Daily Summaries
+        </h2>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+                <thead class="bg-slate-50 dark:bg-slate-950/80 uppercase text-[10px] text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
+                    <tr>
+                        <th class="py-3 px-3">Date</th>
+                        <th class="py-3 px-3">Calories</th>
+                        <th class="py-3 px-3">Protein</th>
+                        <th class="py-3 px-3">Carbs</th>
+                        <th class="py-3 px-3">Fat</th>
+                        <th class="py-3 px-3">Water</th>
+                        <th class="py-3 px-3 text-center">Status</th>
+                        <th class="py-3 px-3 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                    {% for row in history_records %}
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                        <td class="py-3 px-3 font-bold text-slate-900 dark:text-white whitespace-nowrap">{{ row.date|date:"M d, Y" }}</td>
+                        <td class="py-3 px-3 font-semibold text-amber-600 dark:text-amber-400 whitespace-nowrap">{{ row.calories }} kcal</td>
+                        <td class="py-3 px-3 text-emerald-600 dark:text-emerald-400 font-medium whitespace-nowrap">{{ row.protein }}g</td>
+                        <td class="py-3 px-3 text-blue-600 dark:text-blue-400 font-medium whitespace-nowrap">{{ row.carbs }}g</td>
+                        <td class="py-3 px-3 text-rose-600 dark:text-rose-400 font-medium whitespace-nowrap">{{ row.fat }}g</td>
+                        <td class="py-3 px-3 text-cyan-600 dark:text-cyan-400 font-medium whitespace-nowrap">{{ row.water_ml }} ml</td>
+                        <td class="py-3 px-3 text-center whitespace-nowrap">
+                            {% if row.cal_status == 'Optimal' %}
+                            <span class="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">Met Target</span>
+                            {% elif row.cal_status == 'Deficit' %}
+                            <span class="bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">Deficit</span>
+                            {% else %}
+                            <span class="bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">Surplus</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-3 text-right whitespace-nowrap">
+                            <a href="{% url 'dashboard' %}?date={{ row.date|date:'Y-m-d' }}" class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline bg-emerald-500/10 px-2.5 py-1 rounded-lg transition">
+                                View
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-8 text-slate-400 dark:text-slate-500">
+                            No food logs recorded yet. Start logging your meals on the dashboard!
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const ctx = document.getElementById('caloriesChart');
+        if (!ctx) return;
+
+        const dates = {{ chart_dates|safe }};
+        const calories = {{ chart_calories|safe }};
+        const targetCal = {{ targets.calories }};
+
+        if (dates.length === 0) {
+            ctx.parentElement.innerHTML = '<p class="text-center text-slate-400 py-10 text-xs">Log food for a few days to see your trend chart!</p>';
+            return;
+        }
+
+        const isDark = document.documentElement.classList.contains('dark');
+        const gridColor = isDark ? '#1e293b' : '#e2e8f0';
+        const textColor = isDark ? '#94a3b8' : '#64748b';
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: dates,
+                datasets: [
+                    {
+                        label: 'Consumed Calories (kcal)',
+                        data: calories,
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#f59e0b',
+                        pointRadius: 4,
+                        fill: true,
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Daily Target (' + targetCal + ' kcal)',
+                        data: Array(dates.length).fill(targetCal),
+                        borderColor: '#10b981',
+                        borderWidth: 2,
+                        borderDash: [6, 6],
+                        pointRadius: 0,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: textColor,
+                            font: { size: 11 }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: gridColor },
+                        ticks: { color: textColor, font: { size: 10 } }
+                    },
+                    y: {
+                        grid: { color: gridColor },
+                        ticks: { color: textColor, font: { size: 10 } }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
